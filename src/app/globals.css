@@ -1,0 +1,243 @@
+@import "tailwindcss";
+
+/*
+ * Tailwind v4 removed the automatic cursor:pointer from its preflight.
+ * Restore it globally for every interactive element.
+ */
+/* Restore pointer cursor on all interactive elements + their children.
+   Child elements (spans, svgs, text) default to cursor:auto in the browser
+   UA stylesheet which overrides inheritance — explicitly targeting * inside
+   interactive elements prevents the cursor from flickering back to default
+   when the mouse passes over a child node. */
+a,
+button,
+[role="button"],
+label,
+select,
+summary,
+[tabindex]:not([tabindex="-1"]),
+a *,
+button *,
+[role="button"] *,
+label *,
+select *,
+[tabindex]:not([tabindex="-1"]) * {
+  cursor: pointer !important;
+}
+
+/*
+ * ── Design Tokens ──
+ * Synced from Figma: Blueprint - Foundations • Design system | A&D
+ */
+:root {
+  --surface-primary: #ffffff;
+  --surface-secondary: #eeeef1;
+  --surface-inverse-primary: #101017;
+
+  --background-primary: #ffffff;
+  --background-secondary: #fafafb;
+
+  --content-primary: #101017;
+  --content-secondary: #333541;
+  --content-tertiary: #595c69;
+  --content-brand: #0170cb;
+  --content-inverse-primary: #ffffff;
+  --content-inverse-tertiary: rgba(255, 255, 255, 0.72);
+
+  --surface-subtle-brand: #ebf2ff;
+  --neutral-alpha-dark-a88: rgba(33, 34, 44, 0.88);
+  --overlay-light: rgba(255, 255, 255, 0.4);
+
+  --border-strong: #21222c;
+  --border-light: rgba(33, 34, 44, 0.16);
+  --border-subtle: rgba(33, 34, 44, 0.08);
+
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+  --spacing-xl: 20px;
+  --spacing-2xl: 24px;
+  --spacing-3xl: 32px;
+
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 999px;
+
+  --shadow-md: 0px 4px 6px -2px rgba(0, 13, 61, 0.03),
+    0px 12px 16px -4px rgba(0, 13, 61, 0.08);
+  --shadow-lg: 0px 8px 8px -4px rgba(0, 13, 61, 0.03),
+    0px 20px 24px -4px rgba(0, 13, 61, 0.08);
+  --shadow-xl: 0px 24px 48px -12px rgba(0, 13, 61, 0.18);
+
+  --navbar-h: 81px;
+
+  --font-family-heading: "Aeonik Pro TRIAL", "Aeonik Pro", sans-serif;
+  --font-family-body: "Atkinson Hyperlegible Next", sans-serif;
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@theme inline {
+  --font-heading: var(--font-family-heading);
+  --font-body: var(--font-family-body);
+
+  --color-surface-primary: var(--surface-primary);
+  --color-surface-secondary: var(--surface-secondary);
+  --color-surface-inverse-primary: var(--surface-inverse-primary);
+  --color-background-primary: var(--background-primary);
+  --color-content-primary: var(--content-primary);
+  --color-content-secondary: var(--content-secondary);
+  --color-content-tertiary: var(--content-tertiary);
+  --color-content-inverse-primary: var(--content-inverse-primary);
+  --color-border-light: var(--border-light);
+  --color-border-subtle: var(--border-subtle);
+}
+
+body {
+  background: var(--background-primary);
+  color: var(--content-primary);
+  font-family: var(--font-family-body);
+}
+
+/*
+ * ── Dark theme overrides ──
+ * Applied when <html data-theme="dark"> is set.
+ */
+[data-theme="dark"] {
+  --surface-primary: #101017;
+  --surface-secondary: #1c1c26;
+  --surface-inverse-primary: #ffffff;
+
+  --background-primary: #101017;
+  --background-secondary: #0a0a11;
+
+  --content-primary: #ffffff;
+  --content-secondary: rgba(255, 255, 255, 0.88);
+  --content-tertiary: rgba(255, 255, 255, 0.72);
+  --content-brand: #4d9ef5;
+  --content-inverse-primary: #101017;
+  --content-inverse-tertiary: rgba(255, 255, 255, 0.72);
+
+  --border-strong: #ffffff;
+  --border-light: rgba(255, 255, 255, 0.16);
+  --border-subtle: rgba(255, 255, 255, 0.08);
+
+  --shadow-md: 0px 4px 6px -2px rgba(0, 0, 0, 0.3),
+    0px 12px 16px -4px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0px 8px 8px -4px rgba(0, 0, 0, 0.3),
+    0px 20px 24px -4px rgba(0, 0, 0, 0.5);
+  --shadow-xl: 0px 24px 48px -12px rgba(0, 0, 0, 0.6);
+}
+
+@keyframes hero-rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes bar-fill {
+  from {
+    width: 0%;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+@keyframes hero-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Area card entrance — settles in (scales down + fades) after the
+   left column's header and state list have risen into place. */
+@keyframes area-reveal {
+  from {
+    opacity: 0;
+    transform: scale(1.05);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Active state card: enter (drop in) and exit (fade + slide up) */
+@keyframes card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+@keyframes card-exit {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+}
+
+/* Plays when a button switches from display:none → flex (e.g. on hover) */
+@keyframes button-pop {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.hero-rise {
+  animation: hero-rise 0.7s var(--ease-out) both;
+}
+
+/* Hide scrollbar while preserving scroll behaviour */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.hero-fade {
+  animation: hero-fade 0.9s var(--ease-out) both;
+}
+
+.area-reveal {
+  /* Longhand (not the `animation` shorthand) so the Tailwind
+     [animation-delay:…] utility isn't reset to 0. */
+  animation-name: area-reveal;
+  animation-duration: 1s;
+  animation-timing-function: var(--ease-out);
+  animation-fill-mode: both;
+  transform-origin: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
