@@ -1,5 +1,21 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: "Aeonik Pro";
+  src: url("/fonts/Aeonik-Pro-VF.ttc") format("truetype");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Aeonik Pro";
+  src: url("/fonts/Aeonik-Pro-VF.ttc") format("truetype");
+  font-weight: 100 900;
+  font-style: italic;
+  font-display: swap;
+}
+
 /*
  * Tailwind v4 removed the automatic cursor:pointer from its preflight.
  * Restore it globally for every interactive element.
@@ -69,9 +85,9 @@ select *,
     0px 20px 24px -4px rgba(0, 13, 61, 0.08);
   --shadow-xl: 0px 24px 48px -12px rgba(0, 13, 61, 0.18);
 
-  --navbar-h: 81px;
+  --navbar-h: 64px;
 
-  --font-family-heading: "Aeonik Pro TRIAL", "Aeonik Pro", sans-serif;
+  --font-family-heading: "Aeonik Pro", sans-serif;
   --font-family-body: "Atkinson Hyperlegible Next", sans-serif;
 
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
@@ -93,8 +109,14 @@ select *,
   --color-border-subtle: var(--border-subtle);
 }
 
+@media (min-width: 768px) {
+  :root {
+    --navbar-h: 72px;
+  }
+}
+
 body {
-  background: var(--background-primary);
+  background: var(--background-secondary);
   color: var(--content-primary);
   font-family: var(--font-family-body);
 }

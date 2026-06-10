@@ -1,49 +1,52 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   MenuIcon,
   BinocularsIcon,
   SunIcon,
   MoonIcon,
   XIcon,
-  GridFourIcon,
-  SlideshowIcon,
-  AccordionIcon,
-  ProhibitIcon,
-  PillIcon,
-  ColumnsIcon,
-  TabsIcon,
-  CursorClickIcon,
-  BannerIcon,
-  ListIcon,
-  CardsIcon,
 } from "./icons";
 import { useTheme } from "./ThemeProvider";
-import {
-  useLayout,
-  type CardLayout,
-  type RecentSearchStyle,
-  type StateListStyle,
-} from "./LayoutProvider";
+import { useLayout } from "./LayoutProvider";
 
 export default function Navbar() {
   const { theme, toggle } = useTheme();
   const isDark = theme === "dark";
 
-  const {
-    cardLayout,
-    setCardLayout,
-    recentSearch,
-    setRecentSearch,
-    stateList,
-    setStateList,
-  } = useLayout();
+  const { recentSearch, setRecentSearch } = useLayout();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [hidden, setHidden] = useState(false);
+  const lastScrollY = useRef(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentY = window.scrollY;
+      const delta = currentY - lastScrollY.current;
+      if (window.innerWidth >= 768) {
+        if (delta > 4 && currentY > 60) {
+          setHidden(true);
+        } else if (delta < -4) {
+          setHidden(false);
+        }
+      }
+      lastScrollY.current = currentY;
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  const recentSearchOn = recentSearch === "sidebyside";
 
   return (
     <>
-      <nav className="flex items-center justify-between border-b border-[var(--border-subtle)] bg-[var(--background-primary)] px-4 py-[var(--spacing-lg)] transition-colors duration-500 md:px-[var(--spacing-3xl)]">
+      <nav className={[
+        "flex h-16 items-center justify-between border-b border-[var(--border-subtle)] bg-[var(--background-primary)] px-4 transition-colors duration-500 md:h-[72px] md:px-[var(--spacing-3xl)]",
+        "md:fixed md:top-0 md:left-0 md:right-0 md:z-30 md:transition-transform md:duration-300 md:ease-[var(--ease-out)]",
+        hidden ? "md:-translate-y-full" : "md:translate-y-0",
+      ].join(" ")}>
         <div className="flex flex-1 items-center">
           <button
             onClick={() => setMenuOpen(true)}
@@ -75,7 +78,6 @@ export default function Navbar() {
             </span>
           </button>
 
-          {/* Theme toggle */}
           <button
             type="button"
             onClick={toggle}
@@ -90,8 +92,6 @@ export default function Navbar() {
           </button>
         </div>
       </nav>
-
-      {/* ── Menu drawer ── */}
 
       {/* Backdrop */}
       <div
@@ -130,125 +130,39 @@ export default function Navbar() {
 
         {/* Drawer content */}
         <div className="flex flex-col gap-6 overflow-y-auto p-6">
-          {/* Card layout — vertical list */}
-          <div className="flex flex-col gap-2">
-            <p className="font-body text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--content-tertiary)]">
-              Card Layout
-            </p>
-            <div className="flex flex-col overflow-hidden rounded-xl border border-[var(--border-light)]">
-              {(
-                [
-                  { key: "accordion", label: "Inline",  desc: "Card expands below each state (mobile only)", icon: <AccordionIcon className="h-4 w-4" /> },
-                  { key: "slider",    label: "Slider",  desc: "One area at a time, auto-rotates",           icon: <SlideshowIcon className="h-4 w-4" /> },
-                  { key: "grid",      label: "Grid",    desc: "Up to 3 areas shown simultaneously",         icon: <GridFourIcon  className="h-4 w-4" /> },
-                ] as const
-              ).map(({ key, label, desc, icon }, i) => {
-                const active = cardLayout === key;
-                return (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => setCardLayout(key)}
-                    className={[
-                      "flex items-center gap-3 px-4 py-3 text-left transition-colors duration-150",
-                      i > 0 ? "border-t border-[var(--border-light)]" : "",
-                      active
-                        ? "bg-[var(--content-primary)] text-[var(--content-inverse-primary)]"
-                        : "bg-transparent text-[var(--content-secondary)] hover:bg-[var(--surface-secondary)]",
-                    ].join(" ")}
-                  >
-                    <span className="shrink-0">{icon}</span>
-                    <span className="flex min-w-0 flex-1 flex-col">
-                      <span className="font-body text-[14px] font-medium leading-5">{label}</span>
-                      <span className={`font-body text-[11px] leading-4 ${active ? "opacity-70" : "text-[var(--content-tertiary)]"}`}>{desc}</span>
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Recent search — vertical list */}
+          {/* Recent search toggle */}
           <div className="flex flex-col gap-2">
             <p className="font-body text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--content-tertiary)]">
               Recent Search
             </p>
-            <div className="flex flex-col overflow-hidden rounded-xl border border-[var(--border-light)]">
-              {(
-                [
-                  { key: "none",         label: "None",         desc: "Hide the recent search",               icon: <ProhibitIcon     className="h-4 w-4" /> },
-                  { key: "pill",         label: "Pill",         desc: "A pill below the search bar",          icon: <PillIcon         className="h-4 w-4" /> },
-                  { key: "sidebyside",   label: "Side by side", desc: "Recent search beside the search bar",  icon: <ColumnsIcon      className="h-4 w-4" /> },
-                  { key: "tab",          label: "Tab",          desc: "Toggle between Search and Recent",     icon: <TabsIcon         className="h-4 w-4" /> },
-                  { key: "iconhover",    label: "Icon on hover", desc: "Icon expands on hover to reveal it",  icon: <CursorClickIcon  className="h-4 w-4" /> },
-                  { key: "sectionabove", label: "Section above", desc: "A banner above the search bar",       icon: <BannerIcon       className="h-4 w-4" /> },
-                ] as const
-              ).map(({ key, label, desc, icon }, i) => {
-                const active = recentSearch === key;
-                return (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => setRecentSearch(key as RecentSearchStyle)}
-                    className={[
-                      "flex items-center gap-3 px-4 py-3 text-left transition-colors duration-150",
-                      i > 0 ? "border-t border-[var(--border-light)]" : "",
-                      active
-                        ? "bg-[var(--content-primary)] text-[var(--content-inverse-primary)]"
-                        : "bg-transparent text-[var(--content-secondary)] hover:bg-[var(--surface-secondary)]",
-                    ].join(" ")}
-                  >
-                    <span className="shrink-0">{icon}</span>
-                    <span className="flex min-w-0 flex-1 flex-col">
-                      <span className="font-body text-[14px] font-medium leading-5">{label}</span>
-                      <span className={`font-body text-[11px] leading-4 ${active ? "opacity-70" : "text-[var(--content-tertiary)]"}`}>{desc}</span>
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Styles — vertical list */}
-          <div className="flex flex-col gap-2">
-            <p className="font-body text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--content-tertiary)]">
-              Styles
-            </p>
-            <div className="flex flex-col overflow-hidden rounded-xl border border-[var(--border-light)]">
-              {(
-                [
-                  { key: "mixed",     label: "Mixed",     desc: "Underline on desktop, cards on mobile", icon: <ColumnsIcon className="h-4 w-4" /> },
-                  { key: "underline", label: "Underline", desc: "Rows divided by underlines",            icon: <ListIcon    className="h-4 w-4" /> },
-                  { key: "card",      label: "Card",      desc: "Active state as a filled card",         icon: <CardsIcon   className="h-4 w-4" /> },
-                ] as const
-              ).map(({ key, label, desc, icon }, i) => {
-                const active = stateList === key;
-                return (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => setStateList(key as StateListStyle)}
-                    className={[
-                      "flex items-center gap-3 px-4 py-3 text-left transition-colors duration-150",
-                      i > 0 ? "border-t border-[var(--border-light)]" : "",
-                      active
-                        ? "bg-[var(--content-primary)] text-[var(--content-inverse-primary)]"
-                        : "bg-transparent text-[var(--content-secondary)] hover:bg-[var(--surface-secondary)]",
-                    ].join(" ")}
-                  >
-                    <span className="shrink-0">{icon}</span>
-                    <span className="flex min-w-0 flex-1 flex-col">
-                      <span className="font-body text-[14px] font-medium leading-5">{label}</span>
-                      <span className={`font-body text-[11px] leading-4 ${active ? "opacity-70" : "text-[var(--content-tertiary)]"}`}>{desc}</span>
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={recentSearchOn}
+              onClick={() => setRecentSearch(recentSearchOn ? "none" : "sidebyside")}
+              className="flex items-center justify-between rounded-xl border border-[var(--border-light)] px-4 py-3 transition-colors duration-150 hover:bg-[var(--surface-secondary)]"
+            >
+              <span className="font-body text-[14px] font-medium leading-5 text-[var(--content-primary)]">
+                Show recent search
+              </span>
+              {/* Toggle pill */}
+              <span
+                className={[
+                  "relative inline-flex h-6 w-11 shrink-0 rounded-full transition-colors duration-200",
+                  recentSearchOn ? "bg-[var(--content-primary)]" : "bg-[var(--surface-secondary)]",
+                ].join(" ")}
+              >
+                <span
+                  className={[
+                    "absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform duration-200",
+                    recentSearchOn ? "translate-x-[22px]" : "translate-x-0.5",
+                  ].join(" ")}
+                />
+              </span>
+            </button>
           </div>
         </div>
       </div>
     </>
   );
 }
-

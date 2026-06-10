@@ -11,17 +11,15 @@ import Image from "next/image";
 import {
   ArrowRightIcon,
   SearchIcon,
-  MapPinIcon,
   ClockIcon,
   CaretUpIcon,
   CaretDownIcon,
 } from "./icons";
-import { STATES, RECENT_SEARCH, type Area, type State } from "@/data/states";
+import { STATES, RECENT_SEARCH, type State } from "@/data/states";
 import { useLayout } from "./LayoutProvider";
 import SearchModal from "./SearchModal";
 
 const AREA_ROTATE_MS = 3000;
-const STATE_AUTOPLAY_MS = 9000;
 
 function useMediaQuery(query: string, serverDefault: boolean) {
   return useSyncExternalStore(
@@ -61,8 +59,6 @@ export default function HomeHero() {
   const [searchTriggerRect, setSearchTriggerRect] = useState<DOMRect | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  const { cardLayout, stateList } = useLayout();
-
   const isDesktop = useMediaQuery("(min-width: 1024px)", true);
   const docked = useScrolledPast(120);
 
@@ -88,17 +84,6 @@ export default function HomeHero() {
     );
     return () => clearTimeout(t);
   }, [areaIndex, paused, areasLength, activeIndex]);
-
-  // Tablet / mobile: autoplay through states every 9 s.
-  // Disabled for accordion mode — the card stays on the tapped state.
-  useEffect(() => {
-    if (isDesktop || paused || cardLayout === "accordion") return;
-    const t = setTimeout(
-      () => setActiveIndex((i) => (i + 1) % STATES.length),
-      STATE_AUTOPLAY_MS,
-    );
-    return () => clearTimeout(t);
-  }, [activeIndex, isDesktop, paused, cardLayout]);
 
   const goPrevArea = useCallback(
     () => setAreaIndex((i) => (i - 1 + areasLength) % areasLength),
@@ -150,139 +135,43 @@ export default function HomeHero() {
             </p>
           </header>
 
-          {/*
-            Area card — hidden on mobile/tablet in accordion mode (the card
-            lives inline in the state list instead). Always visible on desktop.
-          */}
-          <div
-            className={[
-              // Settles in after the left column. On desktop the list leads
-              // (rows finish ~520ms) and the card reveals at 560ms; on mobile
-              // the card sits near the top so it comes in early (200ms).
-              "area-reveal [animation-delay:200ms] lg:[animation-delay:560ms] lg:[grid-column:2] lg:[grid-row:1/span_2]",
-              cardLayout === "accordion" || stateList === "mixed"
-                ? "hidden lg:block"
-                : "",
-            ].join(" ")}
-          >
-            {stateList === "mixed" ? (
-              <AreaCard
-                state={activeState}
-                areaIndex={areaIndex}
-                paused={paused}
-                onPauseChange={setPaused}
-                onSelectArea={setAreaIndex}
-                onPrev={goPrevArea}
-                onNext={goNextArea}
-                variant="v2"
-              />
-            ) : cardLayout === "grid" ? (
-              <AreaCardGrid
-                state={activeState}
-                paused={paused}
-                onPauseChange={setPaused}
-              />
-            ) : (
-              <AreaCard
-                state={activeState}
-                areaIndex={areaIndex}
-                paused={paused}
-                onPauseChange={setPaused}
-                onSelectArea={setAreaIndex}
-                onPrev={goPrevArea}
-                onNext={goNextArea}
-              />
-            )}
+          {/* Area card — desktop right column only */}
+          <div className="area-reveal hidden [animation-delay:560ms] lg:block lg:[grid-column:2] lg:[grid-row:1/span_2]">
+            <AreaCard
+              state={activeState}
+              areaIndex={areaIndex}
+              paused={paused}
+              onPauseChange={setPaused}
+              onSelectArea={setAreaIndex}
+              onPrev={goPrevArea}
+              onNext={goNextArea}
+              variant="v2"
+            />
           </div>
 
           {/* State list */}
           <nav
             aria-label="Browse developments by state"
-            className={[
-              stateList === "mixed"
-                ? // Mixed: flush rows (active card supplies its own spacing)
-                  "flex flex-col lg:[grid-column:1] lg:[grid-row:2]"
-                : stateList === "card"
-                  ? // Card list: 8 px gap on mobile, 12 px on tablet+
-                    "flex flex-col gap-2 md:gap-3 lg:[grid-column:1] lg:[grid-row:2]"
-                  : cardLayout === "accordion"
-                    ? // Accordion: always single-column (card expands inline)
-                      "flex flex-col lg:flex lg:flex-col lg:[grid-column:1] lg:[grid-row:2]"
-                    : // Underline list (default)
-                      "flex flex-col md:grid md:grid-cols-2 md:gap-x-8 lg:flex lg:flex-col lg:[grid-column:1] lg:[grid-row:2]",
-            ].join("")}
+            className="flex flex-col lg:[grid-column:1] lg:[grid-row:2]"
           >
-            {STATES.map((state, i) => {
-              const onHover = () => {
-                if (isDesktop) setActiveIndex(i);
-              };
-              // Style selection takes precedence over the card layout mode.
-              if (stateList === "mixed") {
-                return (
-                  <MixedStateRow
-                    key={state.id}
-                    state={state}
-                    active={i === activeIndex}
-                    delay={220 + i * 50}
-                    areaIndex={areaIndex}
-                    paused={paused}
-                    onActivate={() => setActiveIndex(i)}
-                    onCollapse={() => setActiveIndex(-1)}
-                    onHover={onHover}
-                    onPauseChange={setPaused}
-                    onSelectArea={setAreaIndex}
-                    onPrev={goPrevArea}
-                    onNext={goNextArea}
-                    noBottomBorder={i + 1 === activeIndex}
-                  />
-                );
-              }
-              if (stateList === "card") {
-                return (
-                  <CardStateRow
-                    key={state.id}
-                    state={state}
-                    active={i === activeIndex}
-                    delay={220 + i * 50}
-                    areaIndex={areaIndex}
-                    paused={paused}
-                    onActivate={() => setActiveIndex(i)}
-                    onHover={onHover}
-                    onPauseChange={setPaused}
-                    onSelectArea={setAreaIndex}
-                    onPrev={goPrevArea}
-                    onNext={goNextArea}
-                  />
-                );
-              }
-              if (cardLayout === "accordion") {
-                return (
-                  <AccordionStateRow
-                    key={state.id}
-                    state={state}
-                    active={i === activeIndex}
-                    delay={220 + i * 50}
-                    areaIndex={areaIndex}
-                    paused={paused}
-                    onActivate={() => setActiveIndex(i)}
-                    onHover={onHover}
-                    onPauseChange={setPaused}
-                    onSelectArea={setAreaIndex}
-                    onPrev={goPrevArea}
-                    onNext={goNextArea}
-                  />
-                );
-              }
-              return (
-                <StateRow
-                  key={state.id}
-                  state={state}
-                  active={i === activeIndex}
-                  delay={220 + i * 50}
-                  onHover={onHover}
-                />
-              );
-            })}
+            {STATES.map((state, i) => (
+              <MixedStateRow
+                key={state.id}
+                state={state}
+                active={i === activeIndex}
+                delay={220 + i * 50}
+                areaIndex={areaIndex}
+                paused={paused}
+                onActivate={() => setActiveIndex(i)}
+                onCollapse={() => setActiveIndex(-1)}
+                onHover={() => { if (isDesktop) setActiveIndex(i); }}
+                onPauseChange={setPaused}
+                onSelectArea={setAreaIndex}
+                onPrev={goPrevArea}
+                onNext={goNextArea}
+                noBottomBorder={i + 1 === activeIndex}
+              />
+            ))}
           </nav>
         </div>
       </div>
@@ -306,179 +195,6 @@ export default function HomeHero() {
         inputRef={searchInputRef}
       />
     </section>
-  );
-}
-
-// ── StateRow ────────────────────────────────────────────────────────────────
-
-function StateRow({
-  state,
-  active,
-  delay,
-  onHover,
-}: {
-  state: State;
-  active: boolean;
-  delay: number;
-  onHover: () => void;
-}) {
-  return (
-    <a
-      href={searchHref(state.id)}
-      onMouseEnter={onHover}
-      onFocus={onHover}
-      className="hero-rise group flex items-baseline gap-3 border-b border-solid py-4 outline-none transition-colors"
-      style={{
-        animationDelay: `${delay}ms`,
-        borderBottomColor: active
-          ? "var(--border-strong)"
-          : "var(--border-light)",
-        borderBottomWidth: active ? 2 : 1,
-      }}
-    >
-      {/* State name + search icon (icon width-animates in/out with active state) */}
-      <span className="flex min-w-0 flex-1 items-baseline">
-        <span
-          className="font-heading text-[24px] font-semibold leading-8 tracking-[-0.5px] transition-colors"
-          style={{
-            color: active
-              ? "var(--content-primary)"
-              : "var(--content-tertiary)",
-          }}
-        >
-          {state.name}
-        </span>
-        <span
-          className={`overflow-hidden transition-[width] duration-300 ease-[var(--ease-out)] ${active ? "w-7" : "w-0"}`}
-        >
-          <SearchIcon className="ml-2 size-5 shrink-0 translate-y-[2px] text-[var(--content-tertiary)]" />
-        </span>
-      </span>
-
-      {/* Count + arrow (arrow only when active; collapses to zero-width until hover) */}
-      <span
-        className="flex shrink-0 items-center whitespace-nowrap font-body text-[12px] leading-4 transition-colors"
-        style={{
-          color: active
-            ? "var(--content-secondary)"
-            : "var(--content-tertiary)",
-        }}
-      >
-        {state.count} developments
-        {active && (
-          <span className="w-0 overflow-hidden transition-[width] duration-200 ease-[var(--ease-out)] group-hover:w-5">
-            <ArrowRightIcon className="ml-1 size-4 shrink-0" />
-          </span>
-        )}
-      </span>
-    </a>
-  );
-}
-
-// ── CardStateRow ──────────────────────────────────────────────────────────────
-// Alternative list style: active state = filled dark card; inactive = white card.
-// On mobile & tablet the active card also expands an inline area card below it,
-// identical to AccordionStateRow but with the card visual treatment.
-
-function CardStateRow({
-  state,
-  active,
-  delay,
-  areaIndex,
-  paused,
-  onActivate,
-  onHover,
-  onPauseChange,
-  onSelectArea,
-  onPrev,
-  onNext,
-}: {
-  state: State;
-  active: boolean;
-  delay: number;
-  areaIndex: number;
-  paused: boolean;
-  onActivate: () => void;
-  onHover: () => void;
-  onPauseChange: (p: boolean) => void;
-  onSelectArea: (i: number) => void;
-  onPrev: () => void;
-  onNext: () => void;
-}) {
-  return (
-    <div className="hero-rise" style={{ animationDelay: `${delay}ms` }}>
-      {/* Card header row */}
-      <a
-        href={searchHref(state.id)}
-        onMouseEnter={onHover}
-        onFocus={onHover}
-        onClick={(e) => {
-          // Mobile / tablet: tap inactive → expand; tap active → navigate.
-          if (!active) {
-            e.preventDefault();
-            onActivate();
-          }
-        }}
-        className={[
-          "group flex items-center justify-between rounded-xl px-6 py-4 outline-none transition-colors duration-200",
-          active
-            ? "bg-[var(--surface-inverse-primary)]"
-            : "bg-[var(--surface-primary)] hover:bg-[var(--surface-secondary)]",
-        ].join(" ")}
-      >
-        <span
-          className="font-heading text-[24px] font-semibold leading-8 tracking-[-0.5px] transition-colors"
-          style={{
-            color: active
-              ? "var(--content-inverse-primary)"
-              : "var(--content-primary)",
-          }}
-        >
-          {state.name}
-        </span>
-
-        <span className="flex shrink-0 items-center">
-          <span
-            className="whitespace-nowrap font-body text-[12px] leading-4 transition-colors"
-            style={{
-              color: active
-                ? "var(--content-inverse-tertiary)"
-                : "var(--content-tertiary)",
-            }}
-          >
-            {state.count} developments
-          </span>
-          {/* Search button — collapses when inactive */}
-          <span
-            className={`overflow-hidden transition-[width] duration-200 ease-[var(--ease-out)] ${active ? "w-14" : "w-0"}`}
-          >
-            <span className="ml-4 flex size-10 shrink-0 items-center justify-center rounded-full border border-[var(--border-light)] bg-[var(--surface-primary)] text-[var(--content-primary)]">
-              <SearchIcon className="size-5" />
-            </span>
-          </span>
-        </span>
-      </a>
-
-      {/* Inline area card — mobile & tablet only (same behaviour as AccordionStateRow) */}
-      <div
-        className="grid lg:hidden transition-[grid-template-rows] duration-500 ease-[var(--ease-out)]"
-        style={{ gridTemplateRows: active ? "1fr" : "0fr" }}
-      >
-        <div className="overflow-hidden" style={{ minHeight: 0 }}>
-          <div className="pb-4 pt-3">
-            <AreaCard
-              state={state}
-              areaIndex={active ? areaIndex : 0}
-              paused={!active || paused}
-              onPauseChange={onPauseChange}
-              onSelectArea={onSelectArea}
-              onPrev={onPrev}
-              onNext={onNext}
-            />
-          </div>
-        </div>
-      </div>
-    </div>
   );
 }
 
@@ -814,121 +530,7 @@ function MixedStateRow({
   );
 }
 
-// ── AccordionStateRow ─────────────────────────────────────────────────────────
-// Mobile & tablet: tapping an inactive row expands it and shows the area card
-// inline below it. Tapping the active row follows the href to state SRP.
-// Desktop: behaves like a normal StateRow (hover switches the right-column card).
-
-function AccordionStateRow({
-  state,
-  active,
-  delay,
-  areaIndex,
-  paused,
-  onActivate,
-  onHover,
-  onPauseChange,
-  onSelectArea,
-  onPrev,
-  onNext,
-}: {
-  state: State;
-  active: boolean;
-  delay: number;
-  areaIndex: number;
-  paused: boolean;
-  onActivate: () => void;
-  onHover: () => void;
-  onPauseChange: (p: boolean) => void;
-  onSelectArea: (i: number) => void;
-  onPrev: () => void;
-  onNext: () => void;
-}) {
-  return (
-    <div className="hero-rise" style={{ animationDelay: `${delay}ms` }}>
-      {/* Row header */}
-      <a
-        href={searchHref(state.id)}
-        onMouseEnter={onHover}
-        onFocus={onHover}
-        onClick={(e) => {
-          // On an inactive row: expand instead of navigate.
-          // On the active row: let the href through to the state SRP.
-          if (!active) {
-            e.preventDefault();
-            onActivate();
-          }
-        }}
-        className="group flex items-baseline gap-3 border-b border-solid py-4 outline-none transition-colors"
-        style={{
-          borderBottomColor: active
-            ? "var(--border-strong)"
-            : "var(--border-light)",
-          borderBottomWidth: active ? 2 : 1,
-        }}
-      >
-        <span className="flex min-w-0 flex-1 items-baseline">
-          <span
-            className="font-heading text-[24px] font-semibold leading-8 tracking-[-0.5px] transition-colors"
-            style={{
-              color: active
-                ? "var(--content-primary)"
-                : "var(--content-tertiary)",
-            }}
-          >
-            {state.name}
-          </span>
-          <span
-            className={`overflow-hidden transition-[width] duration-300 ease-[var(--ease-out)] ${active ? "w-7" : "w-0"}`}
-          >
-            <SearchIcon className="ml-2 size-5 shrink-0 translate-y-[2px] text-[var(--content-tertiary)]" />
-          </span>
-        </span>
-        <span
-          className="flex shrink-0 items-center whitespace-nowrap font-body text-[12px] leading-4 transition-colors"
-          style={{
-            color: active
-              ? "var(--content-secondary)"
-              : "var(--content-tertiary)",
-          }}
-        >
-          {state.count} developments
-          {active && (
-            <span className="w-0 overflow-hidden transition-[width] duration-200 ease-[var(--ease-out)] group-hover:w-5">
-              <ArrowRightIcon className="ml-1 size-4 shrink-0" />
-            </span>
-          )}
-        </span>
-      </a>
-
-      {/*
-        Inline area card — mobile & tablet only (lg:hidden).
-        Uses CSS grid-template-rows trick for a smooth expand/collapse that
-        works even without a fixed height on the inner content.
-      */}
-      <div
-        className="grid lg:hidden transition-[grid-template-rows] duration-500 ease-[var(--ease-out)]"
-        style={{ gridTemplateRows: active ? "1fr" : "0fr" }}
-      >
-        <div className="overflow-hidden" style={{ minHeight: 0 }}>
-          <div className="pb-4 pt-3">
-            <AreaCard
-              state={state}
-              areaIndex={active ? areaIndex : 0}
-              paused={!active || paused}
-              onPauseChange={onPauseChange}
-              onSelectArea={onSelectArea}
-              onPrev={onPrev}
-              onNext={onNext}
-            />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ── AreaCard (slider variant) ────────────────────────────────────────────────
+// ── AreaCard ──────────────────────────────────────────────────────────────────
 
 function AreaCard({
   state,
@@ -1102,162 +704,6 @@ function AreaCard({
   );
 }
 
-// ── AreaCardGrid (grid variant) ──────────────────────────────────────────────
-
-function AreaCardGrid({
-  state,
-  paused,
-  onPauseChange,
-}: {
-  state: State;
-  paused: boolean;
-  onPauseChange: (p: boolean) => void;
-}) {
-  const areas = state.areas;
-  const count = Math.min(areas.length, 3);
-
-  const pointerHandlers = {
-    onPointerEnter: () => onPauseChange(true),
-    onPointerLeave: () => onPauseChange(false),
-  };
-
-  // ── 1 area: single full-height card ──────────────────────────────────────
-  if (count === 1) {
-    return (
-      <div
-        className="aspect-video w-full md:aspect-[2/1] lg:aspect-auto lg:h-full lg:min-h-[560px]"
-        {...pointerHandlers}
-      >
-        <GridTile
-          area={areas[0]}
-          state={state}
-          priority
-          sizes="(min-width: 1024px) 50vw, 100vw"
-          className="h-full w-full"
-        />
-      </div>
-    );
-  }
-
-  // ── 2 areas: two cards stacked vertically ─────────────────────────────────
-  if (count === 2) {
-    return (
-      <div
-        className="grid grid-cols-1 gap-2 md:gap-4 lg:h-full lg:min-h-[560px] lg:[grid-template-rows:1fr_1fr]"
-        {...pointerHandlers}
-      >
-        <GridTile
-          area={areas[0]}
-          state={state}
-          priority
-          sizes="(min-width: 1024px) 50vw, 100vw"
-          className="aspect-[2/1] lg:aspect-auto"
-        />
-        <GridTile
-          area={areas[1]}
-          state={state}
-          sizes="(min-width: 1024px) 50vw, 100vw"
-          className="aspect-[2/1] lg:aspect-auto"
-        />
-      </div>
-    );
-  }
-
-  // ── 3 areas: full 3-tile grid ─────────────────────────────────────────────
-  return (
-    <div
-      className={[
-        // Mobile: 2-col grid, image heights from aspect ratios
-        "grid grid-cols-2 gap-2",
-        // Tablet: fixed aspect ratio; primary spans left col full height
-        "md:gap-4 md:aspect-[56/30] md:[grid-template-rows:1fr_1fr]",
-        // Desktop: fill height; rows split 3:2 (Figma proportions)
-        "lg:aspect-auto lg:h-full lg:min-h-[560px] lg:[grid-template-rows:3fr_2fr]",
-      ].join(" ")}
-      {...pointerHandlers}
-    >
-      {/* Primary: full-width top (mobile/desktop), tall left col (tablet) */}
-      <GridTile
-        area={areas[0]}
-        state={state}
-        priority
-        sizes="(min-width: 1024px) 50vw, (min-width: 768px) 50vw, 100vw"
-        className="col-span-2 aspect-[2/1] md:col-span-1 md:row-span-2 md:aspect-auto lg:col-span-2 lg:row-span-1"
-      />
-      {/* Secondary 1 */}
-      <GridTile
-        area={areas[1]}
-        state={state}
-        sizes="(min-width: 768px) 25vw, 50vw"
-        className="aspect-square md:aspect-auto"
-      />
-      {/* Secondary 2 */}
-      <GridTile
-        area={areas[2]}
-        state={state}
-        sizes="(min-width: 768px) 25vw, 50vw"
-        className="aspect-square md:aspect-auto"
-      />
-    </div>
-  );
-}
-
-function GridTile({
-  area,
-  state,
-  priority = false,
-  sizes,
-  className = "",
-}: {
-  area: Area;
-  state: State;
-  priority?: boolean;
-  sizes?: string;
-  className?: string;
-}) {
-  return (
-    <a
-      href={searchHref(state.id, area.id)}
-      className={`group/tile relative block overflow-hidden rounded-2xl will-change-transform ${className}`}
-    >
-      <Image
-        src={area.image}
-        alt=""
-        fill
-        priority={priority}
-        sizes={sizes}
-        className="object-cover transition-transform duration-700 ease-[var(--ease-out)] group-hover/tile:scale-[1.04]"
-      />
-
-      {/* Bottom overlay: gradient + content (progressive blur disabled —
-          backdrop-filter doesn't composite inside overflow:hidden). */}
-      <div className="absolute inset-x-0 bottom-0">
-        <div
-          className="relative flex items-end px-6 pb-6 pt-16"
-          style={{
-            background:
-              "linear-gradient(180deg, rgba(33,34,44,0.00) 0%, rgba(33,34,44,0.92) 55%)",
-          }}
-        >
-          <span className="flex min-w-0 flex-1 flex-col">
-            <span className="font-heading text-[24px] font-semibold leading-8 tracking-[-0.5px] text-white">
-              {area.name}, {state.abbr}
-            </span>
-            <span className="font-body text-[12px] leading-4 text-white/[0.72]">
-              {area.count} Developments
-            </span>
-          </span>
-        </div>
-      </div>
-
-      {/* Top-right search icon button */}
-      <span className="absolute right-6 top-6 flex size-10 shrink-0 items-center justify-center rounded-full border border-black/[0.16] bg-white text-[#101017] transition-transform duration-300 ease-[var(--ease-out)] group-hover/tile:scale-105">
-        <SearchIcon className="size-5" />
-      </span>
-    </a>
-  );
-}
-
 // ── StickySearchBar ──────────────────────────────────────────────────────────
 
 function StickySearchBar({
@@ -1270,11 +716,7 @@ function StickySearchBar({
   onOpen: (rect: DOMRect) => void;
 }) {
   const { recentSearch } = useLayout();
-  const [anchor, setAnchor] = useState<{ left: number; width: number } | null>(
-    null,
-  );
-  // Tab variant: which segment is active.
-  const [tabMode, setTabMode] = useState<"search" | "recent">("search");
+  const [anchor, setAnchor] = useState<{ left: number; width: number } | null>(null);
 
   // Measure the left column so the undocked bar aligns with it on desktop.
   useEffect(() => {
@@ -1293,12 +735,9 @@ function StickySearchBar({
     };
   }, [isDesktop]);
 
-  // Side-by-side needs more room when docked so both bars fit comfortably.
-  const dockedWidth = recentSearch === "sidebyside" ? 820 : 720;
+  const isSideBySide = recentSearch === "sidebyside";
+  const dockedWidth = isSideBySide ? 820 : 720;
 
-  // Desktop: slide from left-column position → centred when docked.
-  // Fallback to a centred position until the column is measured so the bar is
-  // always visible (e.g. first paint, or inside the device-preview iframe).
   const desktopStyle = isDesktop
     ? docked
       ? { left: "50%", width: dockedWidth, transform: "translateX(-50%)" }
@@ -1307,8 +746,6 @@ function StickySearchBar({
         : { left: "50%", width: 520, transform: "translateX(-50%)" }
     : undefined;
 
-  const isSideBySide = recentSearch === "sidebyside";
-
   return (
     <div
       className={
@@ -1316,46 +753,15 @@ function StickySearchBar({
         (isDesktop
           ? "bottom-6 md:bottom-8 lg:bottom-12 transition-[left,width,transform] duration-700 ease-[var(--ease-out)]"
           : isSideBySide
-            ? // Tablet: full-width with 24px side padding. Mobile: flush bottom sheet.
-              "bottom-0 left-0 w-full md:bottom-8 md:px-6"
+            ? "bottom-0 left-0 w-full md:bottom-8 md:px-6"
             : "bottom-6 md:bottom-8 left-1/2 w-[calc(100%-32px)] -translate-x-1/2 md:w-[588px]")
       }
       style={desktopStyle}
     >
-      {/* Tab: segmented control sits above the bar */}
-      {recentSearch === "tab" && (
-        <SegmentedControl mode={tabMode} onChange={setTabMode} />
-      )}
-
-      {recentSearch === "sidebyside" ? (
-        // Side by side (final): "Last search" + divider + "New search".
+      {isSideBySide ? (
         <RecentLastSearchBar elevated={docked} onOpen={onOpen} />
-      ) : recentSearch === "iconhover" ? (
-        // Icon on hover: a recent-search icon (left) expands on hover.
-        <div className="flex w-full items-center gap-2">
-          <RecentIconToggle />
-          <div className="min-w-0 flex-1">
-            <SearchBar elevated={docked} onOpen={onOpen} />
-          </div>
-        </div>
-      ) : recentSearch === "sectionabove" ? (
-        // Section above: a banner peeks out above the search bar.
-        <RecentSectionAbove>
-          <SearchBar elevated={docked} onOpen={onOpen} />
-        </RecentSectionAbove>
-      ) : recentSearch === "tab" ? (
-        // Tab: swap the bar contents based on the active segment.
-        tabMode === "search" ? (
-          <SearchBar elevated={docked} onOpen={onOpen} />
-        ) : (
-          <RecentTabBar elevated={docked} />
-        )
       ) : (
-        // Default + Pill: standard bar, optional pill below.
-        <>
-          <SearchBar elevated={docked} onOpen={onOpen} />
-          {recentSearch === "pill" && <RecentPill />}
-        </>
+        <SearchBar elevated={docked} onOpen={onOpen} />
       )}
     </div>
   );
@@ -1416,32 +822,6 @@ function SearchBar({
   );
 }
 
-// ── Recent search variants ────────────────────────────────────────────────────
-// All hardcoded to the light palette — they float as surfaces above both themes,
-// matching the SearchBar treatment.
-
-/** Concept 1 — a pill below the search bar. */
-function RecentPill() {
-  return (
-    <div className="flex items-center gap-3 rounded-full border border-[rgba(33,34,44,0.08)] bg-[#eeeef1] py-2 pl-4 pr-2 shadow-[0px_4px_12px_rgba(0,13,61,0.06)]">
-      <span className="font-body text-[14px] leading-5 text-[#333541]">
-        Pick up where you left off
-      </span>
-      <a
-        href={RECENT_SEARCH.href}
-        className="flex shrink-0 items-center gap-1 rounded-full border border-[rgba(33,34,44,0.16)] bg-white px-3 py-1 transition-transform active:scale-95"
-      >
-        <MapPinIcon className="size-4 text-[#101017]" />
-        <span className="font-body text-[14px] font-medium leading-5 text-[#101017]">
-          {RECENT_SEARCH.areaName}, {RECENT_SEARCH.stateAbbr}
-        </span>
-        <span className="font-body text-[12px] leading-4 text-[#595c69]">
-          {RECENT_SEARCH.count}
-        </span>
-      </a>
-    </div>
-  );
-}
 
 /**
  * Concept 2 (final) — "Last search" beside "New search".
@@ -1542,125 +922,3 @@ function RecentLastSearchBar({
   );
 }
 
-/** Concept 3 (Recent segment) — the bar shows the recent search, click → SRP. */
-function RecentTabBar({ elevated }: { elevated?: boolean }) {
-  return (
-    <a
-      href={RECENT_SEARCH.href}
-      className="group flex w-full items-center gap-4 rounded-full border border-black/[0.16] bg-white py-3 pl-6 pr-3 transition-shadow duration-700"
-      style={{ boxShadow: elevated ? "var(--shadow-xl)" : "var(--shadow-lg)" }}
-    >
-      <span className="flex min-w-0 flex-1 items-center gap-2">
-        <MapPinIcon className="size-5 shrink-0 text-[#101017]" />
-        <span className="min-w-0 flex-1 truncate font-body text-[18px] leading-6 text-[#101017]">
-          {RECENT_SEARCH.areaName}, {RECENT_SEARCH.stateAbbr}
-        </span>
-        <span className="shrink-0 font-body text-[12px] leading-4 text-[#595c69]">
-          {RECENT_SEARCH.count} developments
-        </span>
-      </span>
-      <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-[#101017] text-white transition-transform group-active:scale-95">
-        <SearchIcon className="size-5" />
-      </span>
-    </a>
-  );
-}
-
-/**
- * Concept 4 — a recent-search icon to the left of the bar that expands on
- * hover (and focus) to reveal the recent search. Uses a grid-columns transition
- * so the clock icon stays put while the label + name slide open beside it.
- */
-function RecentIconToggle() {
-  return (
-    <a
-      href={RECENT_SEARCH.href}
-      aria-label={`Recent search: ${RECENT_SEARCH.areaName}, ${RECENT_SEARCH.stateAbbr}`}
-      className="group/recent flex h-[72px] shrink-0 items-center overflow-hidden rounded-full border border-[rgba(33,34,44,0.16)] bg-white transition-colors duration-300 hover:bg-[#f4f4f6]"
-      style={{ boxShadow: "var(--shadow-lg)" }}
-    >
-      {/* Persistent clock icon — centred in its fixed 72px box (circle when collapsed) */}
-      <span className="flex size-[72px] shrink-0 items-center justify-center">
-        <ClockIcon className="size-5 text-[#101017]" />
-      </span>
-
-      {/* Revealing column: max-width animates 0 → content on hover/focus */}
-      <span className="max-w-0 overflow-hidden transition-[max-width] duration-300 ease-[var(--ease-out)] group-hover/recent:max-w-[240px] group-focus-visible/recent:max-w-[240px]">
-        <span className="flex flex-col justify-center whitespace-nowrap pr-6">
-          <span className="font-body text-[12px] font-medium uppercase leading-4 text-[#595c69]">
-            Recent search
-          </span>
-          <span className="font-body text-[16px] font-medium leading-6 text-[#101017]">
-            {RECENT_SEARCH.areaName}, {RECENT_SEARCH.stateAbbr}
-          </span>
-        </span>
-      </span>
-    </a>
-  );
-}
-
-/**
- * Concept 5 — a banner that peeks out above the search bar showing the recent
- * search. The bar overlaps the banner's lower half (negative margin) so the
- * banner reads as a tab sitting behind it.
- */
-function RecentSectionAbove({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex w-full flex-col">
-      {/* Banner — the label is plain; the last search is a clear bordered pill button */}
-      <div className="-mb-9 flex w-full items-center justify-between gap-3 rounded-t-xl border border-[rgba(33,34,44,0.08)] bg-[#eeeef1] px-4 pb-11 pt-2 md:px-6">
-        <span className="font-body text-[14px] leading-5 text-[#333541]">
-          Pick up where you left off
-        </span>
-        <a
-          href={RECENT_SEARCH.href}
-          className="flex shrink-0 items-center gap-2 rounded-full border border-[rgba(33,34,44,0.16)] bg-white px-3 py-1 transition-colors hover:bg-[#f4f4f6] active:scale-95"
-        >
-          <span className="flex items-center gap-1">
-            <MapPinIcon className="size-4 shrink-0 text-[#101017]" />
-            <span className="font-body text-[14px] font-medium leading-5 text-[#101017]">
-              {RECENT_SEARCH.areaName}, {RECENT_SEARCH.stateAbbr}
-            </span>
-          </span>
-          <span className="font-body text-[12px] leading-4 text-[#595c69]">
-            {RECENT_SEARCH.count}
-          </span>
-        </a>
-      </div>
-      {/* Search bar sits on top of the banner's lower half */}
-      <div className="relative z-10">{children}</div>
-    </div>
-  );
-}
-
-/** Segmented control toggling Search / Recent (Tab concept). */
-function SegmentedControl({
-  mode,
-  onChange,
-}: {
-  mode: "search" | "recent";
-  onChange: (m: "search" | "recent") => void;
-}) {
-  return (
-    <div className="flex items-center gap-1 rounded-full bg-[#eeeef1] p-1 shadow-[0px_4px_12px_rgba(0,13,61,0.06)]">
-      {(["search", "recent"] as const).map((m) => {
-        const active = mode === m;
-        return (
-          <button
-            key={m}
-            type="button"
-            onClick={() => onChange(m)}
-            className={[
-              "h-7 rounded-full px-3 font-body text-[14px] font-medium leading-5 capitalize transition-colors",
-              active
-                ? "border border-[rgba(33,34,44,0.16)] bg-white text-[#101017]"
-                : "text-[#595c69] hover:text-[#101017]",
-            ].join(" ")}
-          >
-            {m}
-          </button>
-        );
-      })}
-    </div>
-  );
-}

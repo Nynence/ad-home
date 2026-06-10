@@ -2,39 +2,18 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 
-export type CardLayout = "slider" | "grid" | "accordion";
-export type RecentSearchStyle =
-  | "none"
-  | "pill"
-  | "sidebyside"
-  | "tab"
-  | "iconhover"
-  | "sectionabove";
-export type StateListStyle = "underline" | "card" | "mixed";
+export type RecentSearchStyle = "none" | "sidebyside";
 
-// ── Defaults ──────────────────────────────────────────────────────────────────
-const DEFAULT_CARD_LAYOUT: CardLayout       = "accordion";
 const DEFAULT_RECENT_SEARCH: RecentSearchStyle = "none";
-const DEFAULT_STATE_LIST: StateListStyle    = "mixed";
 
-// ── Context ───────────────────────────────────────────────────────────────────
 const LayoutContext = createContext<{
-  cardLayout: CardLayout;
-  setCardLayout: (l: CardLayout) => void;
   recentSearch: RecentSearchStyle;
   setRecentSearch: (s: RecentSearchStyle) => void;
-  stateList: StateListStyle;
-  setStateList: (s: StateListStyle) => void;
 }>({
-  cardLayout: DEFAULT_CARD_LAYOUT,
-  setCardLayout: () => {},
   recentSearch: DEFAULT_RECENT_SEARCH,
   setRecentSearch: () => {},
-  stateList: DEFAULT_STATE_LIST,
-  setStateList: () => {},
 });
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
 function read<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
   try {
@@ -54,36 +33,20 @@ function write<T>(key: string, value: T) {
   }
 }
 
-// ── Provider ──────────────────────────────────────────────────────────────────
 export function LayoutProvider({ children }: { children: React.ReactNode }) {
-  const [cardLayout, _setCardLayout] = useState<CardLayout>(DEFAULT_CARD_LAYOUT);
   const [recentSearch, _setRecentSearch] = useState<RecentSearchStyle>(DEFAULT_RECENT_SEARCH);
-  const [stateList, _setStateList] = useState<StateListStyle>(DEFAULT_STATE_LIST);
 
-  // Hydrate from localStorage after mount so SSR and client match on first render.
   useEffect(() => {
-    _setCardLayout(read("ad-card-layout", DEFAULT_CARD_LAYOUT));
     _setRecentSearch(read("ad-recent-search", DEFAULT_RECENT_SEARCH));
-    _setStateList(read("ad-state-list", DEFAULT_STATE_LIST));
   }, []);
 
-  const setCardLayout = (v: CardLayout) => {
-    _setCardLayout(v);
-    write("ad-card-layout", v);
-  };
   const setRecentSearch = (v: RecentSearchStyle) => {
     _setRecentSearch(v);
     write("ad-recent-search", v);
   };
-  const setStateList = (v: StateListStyle) => {
-    _setStateList(v);
-    write("ad-state-list", v);
-  };
 
   return (
-    <LayoutContext.Provider
-      value={{ cardLayout, setCardLayout, recentSearch, setRecentSearch, stateList, setStateList }}
-    >
+    <LayoutContext.Provider value={{ recentSearch, setRecentSearch }}>
       {children}
     </LayoutContext.Provider>
   );
@@ -91,4 +54,12 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
 
 export function useLayout() {
   return useContext(LayoutContext);
+}
+
+/**
+ * Returns the className for the inner container of each below-fold section.
+ * Responsive padding: 16px mobile → 32px tablet → 48px desktop.
+ */
+export function useSectionContainerClass() {
+  return "mx-auto w-full max-w-[1440px] px-4 md:px-8 lg:px-12";
 }

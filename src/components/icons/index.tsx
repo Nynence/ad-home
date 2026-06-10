@@ -398,6 +398,136 @@ export function BinocularsIcon({ className = "w-5 h-5" }: IconProps) {
   );
 }
 
+// ── OTP section icons ────────────────────────────────────────────────────────
+
+export function LockSimpleIcon({ className = "w-5 h-5" }: IconProps) {
+  // Exact Figma path — 24×24 viewBox, stroke-based
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path d="M8.25 8.25V5.25C8.25 4.25544 8.64509 3.30161 9.34835 2.59835C10.0516 1.89509 11.0054 1.5 12 1.5C12.9946 1.5 13.9484 1.89509 14.6517 2.59835C15.3549 3.30161 15.75 4.25544 15.75 5.25V8.25M4.5 8.25H19.5C19.9142 8.25 20.25 8.58579 20.25 9V19.5C20.25 19.9142 19.9142 20.25 19.5 20.25H4.5C4.08579 20.25 3.75 19.9142 3.75 19.5V9C3.75 8.58579 4.08579 8.25 4.5 8.25Z" />
+    </svg>
+  );
+}
+
+export function ClockFaceIcon({ className = "w-5 h-5" }: IconProps) {
+  // Exact Figma path — 24×24 viewBox, stroke-based
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path d="M12 6.75V12H17.25M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" />
+    </svg>
+  );
+}
+
+export function SparkleIcon({ className = "w-5 h-5" }: IconProps) {
+  // Exact Figma path — 24×24 viewBox, stroke-based
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path d="M16.5 1.5V6M21 6.75v3M14.25 3.75h4.5M19.5 8.25H22.5M7.9 16.1l-5.165-1.903a.75.75 0 0 1 0-1.393L7.9 10.9l1.903-5.165a.75.75 0 0 1 1.393 0L13.1 10.9l5.164 1.903a.75.75 0 0 1 0 1.393L13.1 16.1l-1.903 5.164a.75.75 0 0 1-1.393 0Z" />
+    </svg>
+  );
+}
+
+// ── Development card detail icons (used in ActiveOnMarket) ───────────────────
+
+export function BedIcon({ className = "w-4 h-4" }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 256 256" fill="none" stroke="currentColor" strokeWidth={16} strokeLinecap="round" strokeLinejoin="round" xmlns="http://www.w3.org/2000/svg">
+      <path d="M24,104V56a8,8,0,0,1,8-8H224a8,8,0,0,1,8,8V104" />
+      <rect x="24" y="104" width="208" height="96" rx="8" />
+      <line x1="24" y1="152" x2="232" y2="152" />
+      <rect x="52" y="72" width="60" height="32" rx="4" />
+      <rect x="144" y="72" width="60" height="32" rx="4" />
+    </svg>
+  );
+}
+
+export function BathtubIcon({ className = "w-4 h-4" }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 256 256" fill="none" stroke="currentColor" strokeWidth={16} strokeLinecap="round" strokeLinejoin="round" xmlns="http://www.w3.org/2000/svg">
+      <line x1="24" y1="120" x2="232" y2="120" />
+      <path d="M24,120v48a64,64,0,0,0,128,0V120" />
+      <path d="M24,120V72a24,24,0,0,1,48,0v8" />
+    </svg>
+  );
+}
+
+export function DeskIcon({ className = "w-4 h-4" }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 256 256" fill="none" stroke="currentColor" strokeWidth={16} strokeLinecap="round" strokeLinejoin="round" xmlns="http://www.w3.org/2000/svg">
+      <rect x="16" y="72" width="224" height="20" rx="4" />
+      <line x1="60" y1="92" x2="60" y2="216" />
+      <line x1="196" y1="92" x2="196" y2="216" />
+      <path d="M196,148H96a8,8,0,0,1-8-8V92" />
+    </svg>
+  );
+}
+
+export function PoolIcon({ className = "w-4 h-4" }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 256 256" fill="none" stroke="currentColor" strokeWidth={16} strokeLinecap="round" strokeLinejoin="round" xmlns="http://www.w3.org/2000/svg">
+      <line x1="72" y1="24" x2="72" y2="104" />
+      <line x1="184" y1="24" x2="184" y2="104" />
+      <line x1="72" y1="64" x2="184" y2="64" />
+      <path d="M16,144c24,0,24,28,48,28s24-28,48-28,24,28,48,28,24-28,48-28" />
+      <path d="M16,200c24,0,24,28,48,28s24-28,48-28,24,28,48,28,24-28,48-28" />
+    </svg>
+  );
+}
+
+export function CarIcon({ className = "w-4 h-4" }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 256 256" fill="none" stroke="currentColor" strokeWidth={16} strokeLinecap="round" strokeLinejoin="round" xmlns="http://www.w3.org/2000/svg">
+      <rect x="16" y="104" width="224" height="96" rx="8" />
+      <path d="M56,104L80,48h96l24,56" />
+      <circle cx="72" cy="200" r="16" />
+      <circle cx="184" cy="200" r="16" />
+    </svg>
+  );
+}
+
+export function BuildingIcon({ className = "w-4 h-4" }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 256 256" fill="none" stroke="currentColor" strokeWidth={16} strokeLinecap="round" strokeLinejoin="round" xmlns="http://www.w3.org/2000/svg">
+      <rect x="24" y="48" width="96" height="184" />
+      <rect x="120" y="96" width="112" height="136" />
+      <line x1="8" y1="232" x2="248" y2="232" />
+      <line x1="56" y1="80" x2="88" y2="80" />
+      <line x1="56" y1="112" x2="88" y2="112" />
+      <line x1="56" y1="144" x2="88" y2="144" />
+      <rect x="52" y="184" width="40" height="48" />
+      <line x1="152" y1="128" x2="184" y2="128" />
+      <line x1="152" y1="160" x2="184" y2="160" />
+    </svg>
+  );
+}
+
 export function ClockIcon({ className = "w-5 h-5" }: IconProps) {
   // ClockCounterClockwise
   return (
