@@ -29,8 +29,6 @@ const CARDS = [
 // Target column count for the settled card width (1344px).
 // On wider screens the effect scales up the column count so every column
 // stays the same physical size and the viewport is always fully covered.
-const BASE_COLS       = 9;
-const SETTLED_WIDTH   = 1344; // px — 1440 max-width minus 96px outer padding
 const CARDS_PER_COL   = 16;
 const SCROLL_SPEED    = 0.28;
 const TRAIL_MS        = 750;
@@ -38,6 +36,17 @@ const EASE_IN_MS      = 280;
 const MAX_OPACITY     = 0.4;
 const HIT_RADIUS_PX   = 180;
 const RESPONSIVE_GAP  = "clamp(2px, 0.5vw, 7px)";
+
+// Reframe is driven by clip-path (GPU-composited, no reflow). A fixed duration
+// keeps the motion consistent across every viewport width.
+const REFRAME_MS = 1000;
+
+// Settled card edge inset from the viewport, expressed so the visible (clipped)
+// card matches the old contained box exactly at every breakpoint:
+//   • ≤1440px viewports → floors at the responsive --otp-pad (16/32/48px)
+//   • >1440px viewports → grows so the card caps at 1344px wide, centred
+const CLIP_FINAL = "inset(0 max(var(--otp-pad), (100vw - 1344px) / 2) round 16px)";
+const CLIP_START = "inset(0 0 round 0)";
 
 const GRID_SRCS = Array.from({ length: 48 }, (_, i) =>
   `/grid/loop-${String(i + 1).padStart(2, "0")}.webp`
@@ -48,9 +57,10 @@ const GRID_SRCS = Array.from({ length: 48 }, (_, i) =>
 export default function OTPSection() {
   const { gridBackdrop } = useLayout();
   const [fadeVisible, setFadeVisible]         = useState(false);
-  const [visible, setVisible]                 = useState(false);
-  const [skipReframe, setSkipReframe]         = useState(false);
-  const [reframeDuration, setReframeDuration] = useState(1400);
+  // Default to the settled state so SSR renders the framed card (no full-bleed
+  // flash on load). The reframe is armed only when arriving from the hero.
+  const [visible, setVisible]                 = useState(true);
+  const [skipReframe, setSkipReframe]         = useState(true);
 
   const sectionRef       = useRef<HTMLElement>(null);
   const darkCardRef      = useRef<HTMLDivElement>(null);
@@ -66,23 +76,19 @@ export default function OTPSection() {
     const el = sectionRef.current;
     if (!el) return;
     const rect = el.getBoundingClientRect();
-    // Section is above the viewport (already scrolled past) → settle immediately
-    if (rect.top < 0) {
-      setSkipReframe(true);
-      setVisible(true);
+    // Only reframe when arriving from the hero (section starts fully below the
+    // fold). Flip to the start state instantly here — it's off-screen, so no
+    // visible jump — keeping skipReframe true so this flip isn't animated. The
+    // observer re-enables the transition and animates to settled on scroll-in.
+    // If any part is already visible on load, leave it settled (no reframe).
+    if (rect.top >= window.innerHeight) {
+      setVisible(false);
     }
   }, []);
 
   // ── Fade grid in on page load (not scroll-triggered) ─────────────────────
 
   useEffect(() => { setFadeVisible(true); }, []);
-
-  // ── Viewport-scaled reframe duration ──────────────────────────────────────
-
-  useEffect(() => {
-    const vw = window.innerWidth;
-    setReframeDuration(Math.min(3000, Math.round(1400 * Math.max(1, vw / 1440))));
-  }, []);
 
   // ── Intersection observers (fade-in + reframe) ────────────────────────────
 
@@ -91,7 +97,13 @@ export default function OTPSection() {
     if (!el) return;
 
     const reframeObs = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting) { setVisible(true); reframeObs.disconnect(); } },
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setSkipReframe(false); // enable the transition for the forward reframe
+          setVisible(true);
+          reframeObs.disconnect();
+        }
+      },
       { threshold: 0, rootMargin: "0px 0px -40% 0px" }
     );
 
@@ -107,10 +119,18 @@ export default function OTPSection() {
     const darkCard   = darkCardRef.current;
     if (!darkCard || !bwInner || !colorInner) return;
 
-    // Scale column count so each column is the same physical width on any
-    // viewport — enough columns to fill 100vw at BASE_COLS density for SETTLED_WIDTH.
-    const vw      = window.innerWidth;
-    const dynCols = Math.min(40, Math.max(BASE_COLS, Math.ceil(vw * BASE_COLS / SETTLED_WIDTH)));
+    // Odd column counts so a column sits dead-centre (symmetric). 5 mobile,
+    // 7 tablet, 11 desktop. The settled card caps at 1344px, so above ~1440px
+    // we add columns proportionally to keep each column the same physical size
+    // (≈11 visible in the card) instead of zooming in. Rounded to nearest odd.
+    const vw = window.innerWidth;
+    let dynCols: number;
+    if (vw < 768)       dynCols = 5;
+    else if (vw < 1024) dynCols = 7;
+    else {
+      const nearestOdd = Math.round((11 * vw / 1344 - 1) / 2) * 2 + 1;
+      dynCols = Math.min(23, Math.max(11, nearestOdd));
+    }
 
     // Create column divs imperatively so count can vary per viewport
     const cols: HTMLDivElement[]      = [];
@@ -290,7 +310,7 @@ export default function OTPSection() {
   // ── Render ────────────────────────────────────────────────────────────────
 
   // Grid inner is a plain flex row — column count is set imperatively in the
-  // effect so it always fills 100vw at the correct BASE_COLS density.
+  // effect so the column count is fixed per breakpoint (9 / 7 / 5).
   const gridInnerStyle: React.CSSProperties = {
     position: "absolute", inset: "-30% -6%",
     display: "flex", gap: RESPONSIVE_GAP,
@@ -311,26 +331,27 @@ export default function OTPSection() {
     <section
       ref={sectionRef}
       className="w-full py-6 md:py-8 lg:py-12"
+      style={{ overflowX: "clip" }}
     >
+      {/*
+        Dark card is laid out full-bleed (100vw) permanently. The reframe is a
+        single clip-path transition — GPU-composited, so nothing inside reflows
+        and the rounded corners animate in the same property (perfectly synced).
+        --otp-pad sets the settled edge inset per breakpoint (16/32/48px).
+      */}
       <div
-        className="mx-auto px-4 md:px-8 lg:px-12"
+        ref={darkCardRef}
+        className="relative bg-[#21222c] overflow-hidden flex flex-col items-center py-6 md:py-12 lg:py-24 [--otp-pad:16px] md:[--otp-pad:32px] lg:[--otp-pad:48px]"
         style={{
-          maxWidth: visible ? "1440px" : "100vw",
-          ...(visible ? {} : { paddingLeft: 0, paddingRight: 0 }),
-          willChange: skipReframe ? "auto" : "max-width, padding-left, padding-right",
-          transition: skipReframe ? "none" : `max-width ${reframeDuration}ms cubic-bezier(0.4, 0, 0.2, 1), padding-left ${reframeDuration}ms cubic-bezier(0.4, 0, 0.2, 1), padding-right ${reframeDuration}ms cubic-bezier(0.4, 0, 0.2, 1)`,
+          width: "100vw",
+          marginLeft: "calc(50% - 50vw)",
+          marginRight: "calc(50% - 50vw)",
+          clipPath: visible ? CLIP_FINAL : CLIP_START,
+          WebkitClipPath: visible ? CLIP_FINAL : CLIP_START,
+          willChange: skipReframe ? "auto" : "clip-path",
+          transition: skipReframe ? "none" : `clip-path ${REFRAME_MS}ms cubic-bezier(0.4, 0, 0.2, 1)`,
         }}
       >
-        {/* Dark card */}
-        <div
-          ref={darkCardRef}
-          className="relative bg-[#21222c] overflow-hidden flex flex-col items-center gap-6 p-6 md:gap-8 md:p-12 lg:gap-12 lg:p-24"
-          style={{
-            borderRadius: visible ? "1rem" : 0,
-            willChange: skipReframe ? "auto" : "border-radius",
-            transition: skipReframe ? "none" : `border-radius ${reframeDuration}ms cubic-bezier(0.4, 0, 0.2, 1)`,
-          }}
-        >
           {/* ── Background mosaic (shown when gridBackdrop is on) ── */}
           {gridBackdrop && (
             <>
@@ -368,8 +389,18 @@ export default function OTPSection() {
             </>
           )}
 
+          {/*
+            Content wrapper — fixed at the settled layout (max-w-1440, centred,
+            with horizontal padding that reproduces the old outer px + card pad).
+            It never animates, so text and cards never reflow during the reframe.
+          */}
+          <div
+            className="relative w-full max-w-[1440px] mx-auto flex flex-col items-center gap-6 px-10 md:gap-8 md:px-20 lg:gap-12 lg:px-36"
+            style={{ zIndex: 5 }}
+          >
+
           {/* ── Header ── */}
-          <div className="relative flex flex-col items-center gap-6 w-full max-w-[646px]" style={{ zIndex: 5, willChange: "transform" }}>
+          <div className="relative flex flex-col items-center gap-6 w-full max-w-[646px]" style={{ willChange: "transform" }}>
             <div
               className="flex flex-col items-center gap-3 w-full"
               style={{
@@ -417,18 +448,23 @@ export default function OTPSection() {
           {/* ── Feature Cards ── */}
           <div
             className="relative grid grid-cols-1 gap-4 md:grid-cols-3 lg:gap-6 w-full max-w-[1152px]"
-            style={{ zIndex: 5, willChange: "transform" }}
+            style={{ zIndex: 5 }}
             onMouseEnter={() => { isOverBenefitRef.current = true;  }}
             onMouseLeave={() => { isOverBenefitRef.current = false; }}
           >
             {CARDS.map(({ Icon, title, body }, i) => (
               <div
                 key={title}
-                className="bg-white border border-[rgba(33,34,44,0.16)] rounded-2xl shadow-[0px_24px_48px_-12px_rgba(0,13,61,0.18)] p-4 flex flex-row items-start gap-3 md:flex-col md:gap-6 md:p-6 lg:p-8"
-                style={{
-                  opacity: visible ? 1 : 0,
-                  transform: visible ? "none" : "translateY(28px)",
-                  transition: `opacity 0.55s ease-out ${0.46 + i * 0.15}s, transform 0.55s ease-out ${0.46 + i * 0.15}s`,
+                className="bg-white border border-[rgba(33,34,44,0.16)] rounded-2xl shadow-[0px_24px_48px_-12px_rgba(0,13,61,0.18)] hover:-translate-y-1 transition-transform duration-500 ease-out p-4 flex flex-row items-start gap-3 md:flex-col md:gap-6 md:p-6 lg:p-8"
+                style={visible ? {
+                  animationName: "otp-card-enter",
+                  animationDuration: "0.55s",
+                  animationTimingFunction: "ease-out",
+                  animationDelay: `${0.46 + i * 0.15}s`,
+                  animationFillMode: "both",
+                  willChange: "transform",
+                } : {
+                  opacity: 0,
                 }}
               >
                 <div className="shrink-0 flex items-center justify-center rounded-[8px] bg-[#ebf2ff] size-12 md:size-14">
@@ -445,8 +481,8 @@ export default function OTPSection() {
               </div>
             ))}
           </div>
+          </div>
         </div>
-      </div>
     </section>
   );
 }

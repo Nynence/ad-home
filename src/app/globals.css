@@ -215,6 +215,11 @@ body {
   }
 }
 
+@keyframes otp-card-enter {
+  from { opacity: 0; transform: translateY(28px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+
 /* Plays when a button switches from display:none → flex (e.g. on hover) */
 @keyframes button-pop {
   from {
