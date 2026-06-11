@@ -317,6 +317,7 @@ export default function OTPSection() {
         style={{
           maxWidth: visible ? "1440px" : "100vw",
           ...(visible ? {} : { paddingLeft: 0, paddingRight: 0 }),
+          willChange: skipReframe ? "auto" : "max-width, padding-left, padding-right",
           transition: skipReframe ? "none" : `max-width ${reframeDuration}ms cubic-bezier(0.4, 0, 0.2, 1), padding-left ${reframeDuration}ms cubic-bezier(0.4, 0, 0.2, 1), padding-right ${reframeDuration}ms cubic-bezier(0.4, 0, 0.2, 1)`,
         }}
       >
@@ -326,6 +327,7 @@ export default function OTPSection() {
           className="relative bg-[#21222c] overflow-hidden flex flex-col items-center gap-6 p-6 md:gap-8 md:p-12 lg:gap-12 lg:p-24"
           style={{
             borderRadius: visible ? "1rem" : 0,
+            willChange: skipReframe ? "auto" : "border-radius",
             transition: skipReframe ? "none" : `border-radius ${reframeDuration}ms cubic-bezier(0.4, 0, 0.2, 1)`,
           }}
         >
@@ -367,7 +369,7 @@ export default function OTPSection() {
           )}
 
           {/* ── Header ── */}
-          <div className="relative flex flex-col items-center gap-6 w-full max-w-[646px]" style={{ zIndex: 5 }}>
+          <div className="relative flex flex-col items-center gap-6 w-full max-w-[646px]" style={{ zIndex: 5, willChange: "transform" }}>
             <div
               className="flex flex-col items-center gap-3 w-full"
               style={{
@@ -415,7 +417,7 @@ export default function OTPSection() {
           {/* ── Feature Cards ── */}
           <div
             className="relative grid grid-cols-1 gap-4 md:grid-cols-3 lg:gap-6 w-full max-w-[1152px]"
-            style={{ zIndex: 5 }}
+            style={{ zIndex: 5, willChange: "transform" }}
             onMouseEnter={() => { isOverBenefitRef.current = true;  }}
             onMouseLeave={() => { isOverBenefitRef.current = false; }}
           >
