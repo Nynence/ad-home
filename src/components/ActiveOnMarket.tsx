@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import Image from "next/image";
 import {
   SearchIcon,
+  ArrowRightIcon,
   BedIcon,
   BathtubIcon,
   DeskIcon,
@@ -302,7 +303,7 @@ function ConfigItem({ icon, value }: { icon: React.ReactNode; value: string }) {
 
 function DevCard({ dev }: { dev: Development }) {
   return (
-    <article className="flex flex-col overflow-hidden rounded-2xl border border-[var(--border-light)] bg-[var(--surface-primary)]">
+    <article className="flex-1 min-w-[316px] md:min-w-[360px] flex flex-col overflow-hidden rounded-2xl border border-[var(--border-light)] bg-[var(--surface-primary)]">
       {/* Thumbnail */}
       <div className="relative aspect-[350/196] w-full overflow-hidden">
         <Image
@@ -421,6 +422,36 @@ function DevCard({ dev }: { dev: Development }) {
 export default function ActiveOnMarket() {
   const containerClass = useSectionContainerClass();
   const [activeState, setActiveState] = useState("qld");
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const checkScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 4);
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+  }, []);
+
+  // Reset scroll position and re-check overflow when the state tab changes
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (el) el.scrollLeft = 0;
+    requestAnimationFrame(checkScroll);
+  }, [activeState, checkScroll]);
+
+  // Attach scroll listener and run initial check after first paint
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.addEventListener("scroll", checkScroll, { passive: true });
+    requestAnimationFrame(checkScroll);
+    return () => el.removeEventListener("scroll", checkScroll);
+  }, [checkScroll]);
+
+  const scrollBy = (dir: "left" | "right") => {
+    scrollRef.current?.scrollBy({ left: dir === "left" ? -376 : 376, behavior: "smooth" });
+  };
 
   const selected = STATE_CHIPS.find((s) => s.id === activeState)!;
   const devs = DEVELOPMENTS[activeState] ?? [];
@@ -461,18 +492,62 @@ export default function ActiveOnMarket() {
             </div>
           </div>
 
-          {/* ── Development cards ── */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {devs.map((dev) => (
-              <DevCard key={dev.id} dev={dev} />
-            ))}
+          {/* ── Development cards — horizontal scroll row ── */}
+          <div className="relative">
+            {/* Left fade + arrow — tablet+ only, shown when scrolled right */}
+            <div
+              className={[
+                "pointer-events-none absolute inset-y-0 left-0 z-10 hidden w-28 items-center bg-gradient-to-r from-[var(--background-secondary)] to-transparent transition-opacity duration-200 md:flex",
+                canScrollLeft ? "opacity-100" : "opacity-0",
+              ].join(" ")}
+            >
+              <button
+                type="button"
+                onClick={() => scrollBy("left")}
+                disabled={!canScrollLeft}
+                aria-label="Scroll left"
+                className="pointer-events-auto ml-2 flex size-10 shrink-0 items-center justify-center rounded-full border border-[var(--border-light)] bg-[var(--surface-primary)] shadow-sm transition-shadow hover:shadow-md"
+              >
+                <ArrowRightIcon className="size-4 rotate-180 text-[var(--content-secondary)]" />
+              </button>
+            </div>
+
+            {/* Scroll row — breaks out to screen edge on mobile, stays in container on tablet+ */}
+            <div
+              ref={scrollRef}
+              className="-mx-4 flex gap-4 overflow-x-auto px-4 md:mx-0 md:px-0 [&::-webkit-scrollbar]:hidden [scrollbar-width:none]"
+            >
+              {devs.map((dev) => (
+                <DevCard key={dev.id} dev={dev} />
+              ))}
+              {/* Trailing spacer so last card isn't flush against right edge on mobile */}
+              <div className="w-4 shrink-0 md:hidden" aria-hidden />
+            </div>
+
+            {/* Right fade + arrow — tablet+ only, shown when more content to the right */}
+            <div
+              className={[
+                "pointer-events-none absolute inset-y-0 right-0 z-10 hidden w-28 items-center justify-end bg-gradient-to-l from-[var(--background-secondary)] to-transparent transition-opacity duration-200 md:flex",
+                canScrollRight ? "opacity-100" : "opacity-0",
+              ].join(" ")}
+            >
+              <button
+                type="button"
+                onClick={() => scrollBy("right")}
+                disabled={!canScrollRight}
+                aria-label="Scroll right"
+                className="pointer-events-auto mr-2 flex size-10 shrink-0 items-center justify-center rounded-full border border-[var(--border-light)] bg-[var(--surface-primary)] shadow-sm transition-shadow hover:shadow-md"
+              >
+                <ArrowRightIcon className="size-4 text-[var(--content-secondary)]" />
+              </button>
+            </div>
           </div>
 
           {/* ── CTA ── */}
           <div className="flex justify-center">
             <a
               href={`/search?state=${activeState}`}
-              className="flex max-w-[560px] w-full items-center gap-3 rounded-2xl border border-[var(--border-light)] bg-[var(--surface-primary)] py-4 pl-4 pr-6 transition-shadow duration-300 hover:shadow-[var(--shadow-md)]"
+              className="flex w-full md:max-w-[656px] items-center gap-3 rounded-2xl border border-[var(--border-light)] bg-[var(--surface-primary)] py-4 pl-4 pr-6 transition-shadow duration-300 hover:shadow-[var(--shadow-md)]"
             >
               {/* Thumbnail */}
               <div className="relative h-[46px] w-[46px] shrink-0 overflow-hidden rounded-[12px]">
