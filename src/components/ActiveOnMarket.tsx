@@ -49,9 +49,9 @@ type StateChip = {
 // ── Static data ───────────────────────────────────────────────────────────────
 
 const STATE_CHIPS: StateChip[] = [
-  { id: "qld", label: "QLD", fullName: "Queensland",           count: 128, ctaImage: "/states/qld.jpg"  },
   { id: "vic", label: "VIC", fullName: "Victoria",             count: 167, ctaImage: "/states/vic.jpg"  },
   { id: "nsw", label: "NSW", fullName: "New South Wales",      count: 165, ctaImage: "/states/nsw.jpg"  },
+  { id: "qld", label: "QLD", fullName: "Queensland",           count: 128, ctaImage: "/states/qld.jpg"  },
   { id: "sa",  label: "SA",  fullName: "South Australia",      count:  54, ctaImage: "/states/sa.jpg"   },
   { id: "wa",  label: "WA",  fullName: "Western Australia",    count:  48, ctaImage: "/states/wa.jpg"   },
   { id: "act", label: "ACT", fullName: "Australian Capital Territory", count: 22, ctaImage: "/states/act.jpg" },
@@ -421,7 +421,7 @@ function DevCard({ dev }: { dev: Development }) {
 
 export default function ActiveOnMarket() {
   const containerClass = useSectionContainerClass();
-  const [activeState, setActiveState] = useState("qld");
+  const [activeState, setActiveState] = useState("vic");
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
