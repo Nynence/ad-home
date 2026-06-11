@@ -15,7 +15,7 @@ export default function Navbar() {
   const { theme, toggle } = useTheme();
   const isDark = theme === "dark";
 
-  const { recentSearch, setRecentSearch } = useLayout();
+  const { recentSearch, setRecentSearch, gridBackdrop, setGridBackdrop } = useLayout();
   const [menuOpen, setMenuOpen] = useState(false);
   const [hidden, setHidden] = useState(false);
   const lastScrollY = useRef(0);
@@ -145,7 +145,6 @@ export default function Navbar() {
               <span className="font-body text-[14px] font-medium leading-5 text-[var(--content-primary)]">
                 Show recent search
               </span>
-              {/* Toggle pill */}
               <span
                 className={[
                   "relative inline-flex h-6 w-11 shrink-0 rounded-full transition-colors duration-200",
@@ -156,6 +155,37 @@ export default function Navbar() {
                   className={[
                     "absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform duration-200",
                     recentSearchOn ? "translate-x-[22px]" : "translate-x-0.5",
+                  ].join(" ")}
+                />
+              </span>
+            </button>
+          </div>
+
+          {/* Grid backdrop toggle */}
+          <div className="flex flex-col gap-2">
+            <p className="font-body text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--content-tertiary)]">
+              Appearance
+            </p>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={gridBackdrop}
+              onClick={() => setGridBackdrop(!gridBackdrop)}
+              className="flex items-center justify-between rounded-xl border border-[var(--border-light)] px-4 py-3 transition-colors duration-150 hover:bg-[var(--surface-secondary)]"
+            >
+              <span className="font-body text-[14px] font-medium leading-5 text-[var(--content-primary)]">
+                Mosaic backdrop
+              </span>
+              <span
+                className={[
+                  "relative inline-flex h-6 w-11 shrink-0 rounded-full transition-colors duration-200",
+                  gridBackdrop ? "bg-[var(--content-primary)]" : "bg-[var(--surface-secondary)]",
+                ].join(" ")}
+              >
+                <span
+                  className={[
+                    "absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform duration-200",
+                    gridBackdrop ? "translate-x-[22px]" : "translate-x-0.5",
                   ].join(" ")}
                 />
               </span>

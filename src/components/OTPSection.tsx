@@ -2,6 +2,7 @@
 
 import { useRef, useEffect, useLayoutEffect, useState } from "react";
 import { LockSimpleIcon, ClockFaceIcon, SparkleIcon } from "./icons";
+import { useLayout } from "./LayoutProvider";
 
 // ── Static card data ──────────────────────────────────────────────────────────
 
@@ -45,6 +46,7 @@ const GRID_SRCS = Array.from({ length: 48 }, (_, i) =>
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function OTPSection() {
+  const { gridBackdrop } = useLayout();
   const [fadeVisible, setFadeVisible]         = useState(false);
   const [visible, setVisible]                 = useState(false);
   const [skipReframe, setSkipReframe]         = useState(false);
@@ -327,37 +329,42 @@ export default function OTPSection() {
             transition: skipReframe ? "none" : `border-radius ${reframeDuration}ms cubic-bezier(0.4, 0, 0.2, 1)`,
           }}
         >
-          {/* ── BW grid stage ── */}
-          <div style={{ ...stageBase, zIndex: 1, filter: "saturate(0) brightness(0.45) contrast(0.85)", opacity: fadeVisible ? 0.20 : 0 }}>
-            <div ref={bwInnerRef} style={gridInnerStyle} />
-          </div>
+          {/* ── Background mosaic (shown when gridBackdrop is on) ── */}
+          {gridBackdrop && (
+            <>
+              {/* BW grid stage */}
+              <div style={{ ...stageBase, zIndex: 1, filter: "saturate(0) brightness(0.45) contrast(0.85)", opacity: fadeVisible ? 0.20 : 0 }}>
+                <div ref={bwInnerRef} style={gridInnerStyle} />
+              </div>
 
-          {/* ── Colour grid stage (mouse-trail reveal) ── */}
-          <div style={{ ...stageBase, zIndex: 2, opacity: fadeVisible ? 1 : 0 }}>
-            <div ref={colorInnerRef} style={gridInnerStyle} />
-          </div>
+              {/* Colour grid stage (mouse-trail reveal) */}
+              <div style={{ ...stageBase, zIndex: 2, opacity: fadeVisible ? 1 : 0 }}>
+                <div ref={colorInnerRef} style={gridInnerStyle} />
+              </div>
 
-          {/* ── Blur overlay — fades out halfway down ── */}
-          <div style={{
-            position: "absolute", inset: 0, zIndex: 3, pointerEvents: "none",
-            backdropFilter: "blur(7px)", WebkitBackdropFilter: "blur(7px)",
-            WebkitMaskImage: "linear-gradient(to bottom, black 0%, black 20%, transparent 58%)",
-            maskImage:        "linear-gradient(to bottom, black 0%, black 20%, transparent 58%)",
-          }} />
+              {/* Blur overlay */}
+              <div style={{
+                position: "absolute", inset: 0, zIndex: 3, pointerEvents: "none",
+                backdropFilter: "blur(7px)", WebkitBackdropFilter: "blur(7px)",
+                WebkitMaskImage: "linear-gradient(to bottom, black 0%, black 20%, transparent 58%)",
+                maskImage:        "linear-gradient(to bottom, black 0%, black 20%, transparent 58%)",
+              }} />
 
-          {/* ── Top colour fade + radial vignette ── */}
-          <div style={{
-            position: "absolute", inset: 0, zIndex: 4, pointerEvents: "none",
-            background:
-              "linear-gradient(to bottom, rgba(14,15,20,0.97) 0%, rgba(14,15,20,0.0) 30%), " +
-              "radial-gradient(ellipse 60% 50% at 50% 42%, rgba(14,15,20,0.55) 0%, transparent 100%)",
-          }} />
+              {/* Top colour fade + radial vignette */}
+              <div style={{
+                position: "absolute", inset: 0, zIndex: 4, pointerEvents: "none",
+                background:
+                  "linear-gradient(to bottom, rgba(14,15,20,0.97) 0%, rgba(14,15,20,0.0) 30%), " +
+                  "radial-gradient(ellipse 60% 50% at 50% 42%, rgba(14,15,20,0.55) 0%, transparent 100%)",
+              }} />
 
-          {/* ── Bottom colour fade ── */}
-          <div style={{
-            position: "absolute", inset: 0, zIndex: 4, pointerEvents: "none",
-            background: "linear-gradient(to top, rgba(14,15,20,0.95) 0%, rgba(14,15,20,0.0) 30%)",
-          }} />
+              {/* Bottom colour fade */}
+              <div style={{
+                position: "absolute", inset: 0, zIndex: 4, pointerEvents: "none",
+                background: "linear-gradient(to top, rgba(14,15,20,0.95) 0%, rgba(14,15,20,0.0) 30%)",
+              }} />
+            </>
+          )}
 
           {/* ── Header ── */}
           <div className="relative flex flex-col items-center gap-6 w-full max-w-[646px]" style={{ zIndex: 5 }}>
