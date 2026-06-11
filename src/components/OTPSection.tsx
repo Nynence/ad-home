@@ -61,6 +61,11 @@ export default function OTPSection() {
   // flash on load). The reframe is armed only when arriving from the hero.
   const [visible, setVisible]                 = useState(true);
   const [skipReframe, setSkipReframe]         = useState(true);
+  // Content (headline/subtext/CTA/cards) always starts hidden and animates in
+  // whenever the section first enters view — including on reload while already
+  // focused on it. Decoupled from `visible` (which the reframe owns) so the
+  // entrance plays even when the reframe itself is skipped.
+  const [contentIn, setContentIn]             = useState(false);
 
   const sectionRef       = useRef<HTMLElement>(null);
   const darkCardRef      = useRef<HTMLDivElement>(null);
@@ -76,12 +81,16 @@ export default function OTPSection() {
     const el = sectionRef.current;
     if (!el) return;
     const rect = el.getBoundingClientRect();
-    // Only reframe when arriving from the hero (section starts fully below the
-    // fold). Flip to the start state instantly here — it's off-screen, so no
-    // visible jump — keeping skipReframe true so this flip isn't animated. The
-    // observer re-enables the transition and animates to settled on scroll-in.
-    // If any part is already visible on load, leave it settled (no reframe).
-    if (rect.top >= window.innerHeight) {
+    // Arm the reframe whenever the section hasn't yet crossed the observer's
+    // trigger line. The observer fires at rootMargin "-40%", i.e. when the
+    // section top reaches 60% of the viewport height — so the trigger zone is
+    // `top < innerHeight * 0.6`. If we load with the top still at/below that
+    // line (fully below the fold OR just peeking in), the scroll-in interaction
+    // hasn't happened yet, so flip to the start state now (it's below the
+    // trigger, no visible jump) and let the observer animate it in on scroll.
+    // skipReframe stays true so this initial flip isn't animated.
+    const triggerLine = window.innerHeight * 0.6;
+    if (rect.top >= triggerLine) {
       setVisible(false);
     }
   }, []);
@@ -101,6 +110,7 @@ export default function OTPSection() {
         if (entry.isIntersecting) {
           setSkipReframe(false); // enable the transition for the forward reframe
           setVisible(true);
+          setContentIn(true);    // always play the content entrance on first view
           reframeObs.disconnect();
         }
       },
@@ -404,8 +414,8 @@ export default function OTPSection() {
             <div
               className="flex flex-col items-center gap-3 w-full"
               style={{
-                opacity: visible ? 1 : 0,
-                transform: visible ? "none" : "translateY(22px)",
+                opacity: contentIn ? 1 : 0,
+                transform: contentIn ? "none" : "translateY(22px)",
                 transition: "opacity 0.65s ease-out 0.2s, transform 0.65s ease-out 0.2s",
               }}
             >
@@ -430,8 +440,8 @@ export default function OTPSection() {
               onMouseEnter={() => { isOverBenefitRef.current = true;  }}
               onMouseLeave={() => { isOverBenefitRef.current = false; }}
               style={{
-                opacity: visible ? 1 : 0,
-                transform: visible ? "none" : "translateY(14px)",
+                opacity: contentIn ? 1 : 0,
+                transform: contentIn ? "none" : "translateY(14px)",
                 transition: "opacity 0.6s ease-out 0.36s, transform 0.6s ease-out 0.36s, background-color 0.3s ease-out",
               }}
             >
@@ -456,7 +466,7 @@ export default function OTPSection() {
               <div
                 key={title}
                 className="bg-white border border-[rgba(33,34,44,0.16)] rounded-2xl shadow-[0px_24px_48px_-12px_rgba(0,13,61,0.18)] hover:-translate-y-1 transition-transform duration-500 ease-out p-4 flex flex-row items-start gap-3 md:flex-col md:gap-6 md:p-6 lg:p-8"
-                style={visible ? {
+                style={contentIn ? {
                   animationName: "otp-card-enter",
                   animationDuration: "0.55s",
                   animationTimingFunction: "ease-out",
