@@ -354,14 +354,14 @@ export default function OTPSection() {
               <div style={{
                 position: "absolute", inset: 0, zIndex: 4, pointerEvents: "none",
                 background:
-                  "linear-gradient(to bottom, rgba(14,15,20,0.97) 0%, rgba(14,15,20,0.0) 30%), " +
-                  "radial-gradient(ellipse 60% 50% at 50% 42%, rgba(14,15,20,0.55) 0%, transparent 100%)",
+                  "linear-gradient(to bottom, rgba(33,34,44,0.97) 0%, rgba(33,34,44,0.0) 30%), " +
+                  "radial-gradient(ellipse 60% 50% at 50% 42%, rgba(33,34,44,0.55) 0%, transparent 100%)",
               }} />
 
               {/* Bottom colour fade */}
               <div style={{
                 position: "absolute", inset: 0, zIndex: 4, pointerEvents: "none",
-                background: "linear-gradient(to top, rgba(14,15,20,0.95) 0%, rgba(14,15,20,0.0) 30%)",
+                background: "linear-gradient(to top, rgba(33,34,44,0.95) 0%, rgba(33,34,44,0.0) 30%)",
               }} />
             </>
           )}
