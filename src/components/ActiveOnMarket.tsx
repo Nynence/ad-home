@@ -424,7 +424,26 @@ export default function ActiveOnMarket() {
   const [activeState, setActiveState] = useState("vic");
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
+  const [visible, setVisible] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const sectionRef = useRef<HTMLElement>(null);
+
+  // Fade-up the section the first time it scrolls into view
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisible(true);
+          obs.disconnect();
+        }
+      },
+      { threshold: 0, rootMargin: "0px 0px -15% 0px" }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
 
   const checkScroll = useCallback(() => {
     const el = scrollRef.current;
@@ -458,10 +477,19 @@ export default function ActiveOnMarket() {
 
   return (
     <section
+      ref={sectionRef}
       aria-label="Active on the Market"
       className="w-full bg-[var(--background-secondary)] pt-12 pb-24"
     >
-      <div className={containerClass}>
+      <div
+        className={containerClass}
+        style={{
+          opacity: visible ? 1 : 0,
+          transform: visible ? "none" : "translateY(28px)",
+          transition: "opacity 0.7s ease-out, transform 0.7s ease-out",
+          willChange: "opacity, transform",
+        }}
+      >
         <div className="flex flex-col gap-8">
           {/* ── Header: title + state chips ── */}
           <div className="flex flex-col gap-8">
