@@ -2,6 +2,7 @@ import Navbar from "@/components/Navbar";
 import HomeHero from "@/components/HomeHero";
 import OTPSection from "@/components/OTPSection";
 import ActiveOnMarket from "@/components/ActiveOnMarket";
+import GetTheFullPicture from "@/components/GetTheFullPicture";
 import Footer from "@/components/Footer";
 import { LayoutProvider } from "@/components/LayoutProvider";
 
@@ -16,6 +17,7 @@ export default function HomePage() {
         <HomeHero />
         <OTPSection />
         <ActiveOnMarket />
+        <GetTheFullPicture />
       </main>
       <Footer />
     </LayoutProvider>
