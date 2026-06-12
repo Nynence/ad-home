@@ -55,7 +55,7 @@ const GRID_SRCS = Array.from({ length: 48 }, (_, i) =>
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function OTPSection() {
-  const { gridBackdrop } = useLayout();
+  const { gridBackdrop, mosaicBrightness } = useLayout();
   const [fadeVisible, setFadeVisible]         = useState(false);
   // Default to the settled state so SSR renders the framed card (no full-bleed
   // flash on load). The reframe is armed only when arriving from the hero.
@@ -66,12 +66,20 @@ export default function OTPSection() {
   // focused on it. Decoupled from `visible` (which the reframe owns) so the
   // entrance plays even when the reframe itself is skipped.
   const [contentIn, setContentIn]             = useState(false);
+  // Live backdrop-blur is costly because the moving grid forces it to recompute
+  // every frame. Default on (SSR-safe); a one-shot check disables it when the
+  // user prefers reduced motion or the browser is rendering without GPU accel.
+  const [blurEnabled, setBlurEnabled]         = useState(true);
 
   const sectionRef       = useRef<HTMLElement>(null);
   const darkCardRef      = useRef<HTMLDivElement>(null);
   const bwInnerRef       = useRef<HTMLDivElement>(null);
   const colorInnerRef    = useRef<HTMLDivElement>(null);
   const isOverBenefitRef = useRef(false);
+  // Freeze the grid loop while the reframe clip-path is mid-flight.
+  const pauseGridRef     = useRef(false);
+  // Mirror of `visible` so the reframe observer can read it without a stale closure.
+  const visibleRef       = useRef(true);
 
   // ── Skip reframe if section is already in view or above on load ──────────
   // Only animate the width reframe when scrolling down from the hero for the
@@ -99,15 +107,53 @@ export default function OTPSection() {
 
   useEffect(() => { setFadeVisible(true); }, []);
 
+  // Keep visibleRef synced so the reframe observer reads the current value.
+  useEffect(() => { visibleRef.current = visible; }, [visible]);
+
+  // ── Decide once whether the live backdrop-blur is affordable ──────────────
+  // Two quick, synchronous checks: (1) the reduced-motion preference, and
+  // (2) whether the browser is falling back to a software (no-GPU) renderer,
+  // read from the WebGL renderer string. Both are cheap and run a single time.
+  useEffect(() => {
+    const reduceMotion =
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+
+    let software = false;
+    try {
+      const gl = document
+        .createElement("canvas")
+        .getContext("webgl") as WebGLRenderingContext | null;
+      const dbg = gl?.getExtension("WEBGL_debug_renderer_info");
+      const renderer =
+        gl && dbg ? String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL)) : "";
+      software = /swiftshader|llvmpipe|software|basic render/i.test(renderer);
+      gl?.getExtension("WEBGL_lose_context")?.loseContext();
+    } catch {
+      /* renderer info unavailable — assume hardware accel and keep the blur */
+    }
+
+    if (reduceMotion || software) setBlurEnabled(false);
+  }, []);
+
   // ── Intersection observers (fade-in + reframe) ────────────────────────────
 
   useEffect(() => {
     const el = sectionRef.current;
     if (!el) return;
 
+    let reframeTimer = 0;
     const reframeObs = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
+          // The clip-path only animates when arriving from above (section was
+          // hidden). Freeze the mosaic for that window so the grid and the
+          // reframe don't repaint over each other — the heavy scroll-in case.
+          if (!visibleRef.current) {
+            pauseGridRef.current = true;
+            reframeTimer = window.setTimeout(() => {
+              pauseGridRef.current = false;
+            }, REFRAME_MS + 80);
+          }
           setSkipReframe(false); // enable the transition for the forward reframe
           setVisible(true);
           setContentIn(true);    // always play the content entrance on first view
@@ -118,7 +164,7 @@ export default function OTPSection() {
     );
 
     reframeObs.observe(el);
-    return () => { reframeObs.disconnect(); };
+    return () => { reframeObs.disconnect(); window.clearTimeout(reframeTimer); };
   }, []);
 
   // ── Background grid animation ─────────────────────────────────────────────
@@ -234,6 +280,94 @@ export default function OTPSection() {
     let frameId = 0;
     let last: number | null = null;
     let prevBest: HTMLElement | null = null;
+    let running = false;
+    let ready   = false;
+    let inView  = false;
+
+    function tick(ts: number) {
+      // While the reframe clip-path is animating, hold the grid still so the
+      // two effects don't repaint on top of each other (the heavy scroll-in).
+      if (pauseGridRef.current) {
+        last = null;            // reset dt so motion doesn't jump on resume
+        frameId = requestAnimationFrame(tick);
+        return;
+      }
+
+      if (!last) last = ts;
+      const dt = Math.min((ts - last) / 16.67, 3);
+      last = ts;
+
+      baseOffset += SCROLL_SPEED * dt;
+      if (baseOffset >= halfH) baseOffset -= halfH;
+
+      // Trail reveal
+      let bestCard: HTMLElement | null = null;
+      if (isInside && !isOverBenefitRef.current) {
+        let bestDist = Infinity;
+        for (const card of allColorCards) {
+          const r  = card.getBoundingClientRect();
+          const cx = r.left + r.width  * 0.5;
+          const cy = r.top  + r.height * 0.5;
+          const d  = (mouseX - cx) ** 2 + (mouseY - cy) ** 2;
+          if (d < bestDist) { bestDist = d; bestCard = card; }
+        }
+        if (bestCard && bestDist < HIT_RADIUS_PX ** 2) {
+          if (trail.has(bestCard)) {
+            const e = trail.get(bestCard)!;
+            if (bestCard !== prevBest) e.enteredTime = ts;
+            e.litTime = ts;
+          } else {
+            trail.set(bestCard, { litTime: ts, enteredTime: ts });
+          }
+        } else {
+          bestCard = null;
+        }
+      }
+      prevBest = bestCard;
+
+      trail.forEach((entry, card) => {
+        const age = ts - entry.litTime;
+        if (age >= TRAIL_MS) {
+          card.style.opacity = "0";
+          trail.delete(card);
+        } else {
+          const easeIn  = Math.min((ts - entry.enteredTime) / EASE_IN_MS, 1);
+          const easeOut = Math.pow(1 - age / TRAIL_MS, 1.6);
+          card.style.opacity = (easeIn * easeOut * MAX_OPACITY).toFixed(3);
+        }
+      });
+
+      for (let i = 0; i < dynCols; i++) {
+        const pos = i % 2 === 1 ? (baseOffset + staggerPx) % halfH : baseOffset;
+        const t   = `translateY(-${pos.toFixed(1)}px)`;
+        cols[i].style.transform      = t;
+        colorCols[i].style.transform = t;
+      }
+
+      frameId = requestAnimationFrame(tick);
+    }
+
+    function startLoop() {
+      if (running || !ready || !inView) return;
+      running = true;
+      last = null;
+      frameId = requestAnimationFrame(tick);
+    }
+    function stopLoop() {
+      running = false;
+      cancelAnimationFrame(frameId);
+    }
+
+    // Only run the loop while the section is on (or near) screen. No reason to
+    // composite the moving grid + filters when it's scrolled out of view.
+    const playObs = new IntersectionObserver(
+      ([entry]) => {
+        inView = entry.isIntersecting;
+        if (inView) startLoop(); else stopLoop();
+      },
+      { rootMargin: "200px 0px 200px 0px" }
+    );
+    playObs.observe(darkCard);
 
     requestAnimationFrame(() => {
       // Duplicate each column so the loop is seamless
@@ -249,65 +383,13 @@ export default function OTPSection() {
       );
       allColorCards.forEach(c => { c.style.opacity = "0"; });
 
-      function tick(ts: number) {
-        if (!last) last = ts;
-        const dt = Math.min((ts - last) / 16.67, 3);
-        last = ts;
-
-        baseOffset += SCROLL_SPEED * dt;
-        if (baseOffset >= halfH) baseOffset -= halfH;
-
-        // Trail reveal
-        let bestCard: HTMLElement | null = null;
-        if (isInside && !isOverBenefitRef.current) {
-          let bestDist = Infinity;
-          for (const card of allColorCards) {
-            const r  = card.getBoundingClientRect();
-            const cx = r.left + r.width  * 0.5;
-            const cy = r.top  + r.height * 0.5;
-            const d  = (mouseX - cx) ** 2 + (mouseY - cy) ** 2;
-            if (d < bestDist) { bestDist = d; bestCard = card; }
-          }
-          if (bestCard && bestDist < HIT_RADIUS_PX ** 2) {
-            if (trail.has(bestCard)) {
-              const e = trail.get(bestCard)!;
-              if (bestCard !== prevBest) e.enteredTime = ts;
-              e.litTime = ts;
-            } else {
-              trail.set(bestCard, { litTime: ts, enteredTime: ts });
-            }
-          } else {
-            bestCard = null;
-          }
-        }
-        prevBest = bestCard;
-
-        trail.forEach((entry, card) => {
-          const age = ts - entry.litTime;
-          if (age >= TRAIL_MS) {
-            card.style.opacity = "0";
-            trail.delete(card);
-          } else {
-            const easeIn  = Math.min((ts - entry.enteredTime) / EASE_IN_MS, 1);
-            const easeOut = Math.pow(1 - age / TRAIL_MS, 1.6);
-            card.style.opacity = (easeIn * easeOut * MAX_OPACITY).toFixed(3);
-          }
-        });
-
-        for (let i = 0; i < dynCols; i++) {
-          const pos = i % 2 === 1 ? (baseOffset + staggerPx) % halfH : baseOffset;
-          const t   = `translateY(-${pos.toFixed(1)}px)`;
-          cols[i].style.transform      = t;
-          colorCols[i].style.transform = t;
-        }
-
-        frameId = requestAnimationFrame(tick);
-      }
-      frameId = requestAnimationFrame(tick);
+      ready = true;
+      startLoop();
     });
 
     return () => {
       cancelAnimationFrame(frameId);
+      playObs.disconnect();
       darkCard.removeEventListener("mouseenter", onEnter);
       darkCard.removeEventListener("mouseleave", onLeave);
       darkCard.removeEventListener("mousemove",  onMove);
@@ -366,8 +448,8 @@ export default function OTPSection() {
           {gridBackdrop && (
             <>
               {/* BW grid stage */}
-              <div style={{ ...stageBase, zIndex: 1, filter: "saturate(0) brightness(0.45) contrast(0.85)", opacity: fadeVisible ? 0.20 : 0 }}>
-                <div ref={bwInnerRef} style={gridInnerStyle} />
+              <div style={{ ...stageBase, zIndex: 1, filter: "saturate(0) brightness(0.45) contrast(0.85)", opacity: fadeVisible ? 1 : 0 }}>
+                <div ref={bwInnerRef} style={{ ...gridInnerStyle, opacity: mosaicBrightness, transition: "opacity 250ms ease-out" }} />
               </div>
 
               {/* Colour grid stage (mouse-trail reveal) */}
@@ -375,13 +457,15 @@ export default function OTPSection() {
                 <div ref={colorInnerRef} style={gridInnerStyle} />
               </div>
 
-              {/* Blur overlay */}
-              <div style={{
-                position: "absolute", inset: 0, zIndex: 3, pointerEvents: "none",
-                backdropFilter: "blur(7px)", WebkitBackdropFilter: "blur(7px)",
-                WebkitMaskImage: "linear-gradient(to bottom, black 0%, black 20%, transparent 58%)",
-                maskImage:        "linear-gradient(to bottom, black 0%, black 20%, transparent 58%)",
-              }} />
+              {/* Blur overlay — skipped entirely when reduced-motion / no GPU accel */}
+              {blurEnabled && (
+                <div style={{
+                  position: "absolute", inset: 0, zIndex: 3, pointerEvents: "none",
+                  backdropFilter: "blur(7px)", WebkitBackdropFilter: "blur(7px)",
+                  WebkitMaskImage: "linear-gradient(to bottom, black 0%, black 20%, transparent 58%)",
+                  maskImage:        "linear-gradient(to bottom, black 0%, black 20%, transparent 58%)",
+                }} />
+              )}
 
               {/* Top colour fade + radial vignette */}
               <div style={{
