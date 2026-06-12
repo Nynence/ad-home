@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { NewspaperClippingIcon, UsersThreeIcon } from "./icons";
 
@@ -37,12 +40,41 @@ const DESTINATIONS: Destination[] = [
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function GetTheFullPicture() {
+  const sectionRef = useRef<HTMLElement>(null);
+  const [visible, setVisible] = useState(false);
+
+  // Fade-up the section the first time it scrolls into view
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisible(true);
+          obs.disconnect();
+        }
+      },
+      { threshold: 0, rootMargin: "0px 0px -15% 0px" }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
   return (
     <section
+      ref={sectionRef}
       aria-label="Get the Full Picture"
       className="w-full bg-[var(--background-secondary)] pt-6 pb-12 md:pt-8 md:pb-16 lg:pt-12 lg:pb-24"
     >
-      <div className="mx-auto w-full max-w-[1440px] px-4 md:px-8 lg:px-12">
+      <div
+        className="mx-auto w-full max-w-[1440px] px-4 md:px-8 lg:px-12"
+        style={{
+          opacity: visible ? 1 : 0,
+          transform: visible ? "none" : "translateY(28px)",
+          transition: "opacity 0.7s ease-out, transform 0.7s ease-out",
+          willChange: "opacity, transform",
+        }}
+      >
         {/* Heading + cards — 32px gap on every breakpoint */}
         <div className="flex flex-col gap-8">
           <h2 className="font-heading text-[32px] font-semibold leading-10 tracking-[-0.5px] text-[var(--content-primary)] md:text-[36px] md:leading-[44px]">
