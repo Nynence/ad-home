@@ -9,13 +9,27 @@ import {
   XIcon,
 } from "./icons";
 import { useTheme } from "./ThemeProvider";
-import { useLayout } from "./LayoutProvider";
+import { useLayout, HERO_MAX_WIDTH_OPTIONS, HERO_MAX_WIDTH_PX, type HeroMaxWidth } from "./LayoutProvider";
+
+// Short labels shown beneath the hero-width slider; the readout uses the long form.
+const HERO_WIDTH_TICKS: Record<HeroMaxWidth, string> = {
+  "1440": "1440",
+  "1920": "1920",
+  "2560": "2560",
+  max: "Max",
+};
+const HERO_WIDTH_READOUT: Record<HeroMaxWidth, string> = {
+  "1440": "1440px",
+  "1920": "1920px",
+  "2560": "2560px",
+  max: "Max. Fill",
+};
 
 export default function Navbar() {
   const { theme, toggle } = useTheme();
   const isDark = theme === "dark";
 
-  const { recentSearch, setRecentSearch, gridBackdrop, setGridBackdrop, mosaicBrightness, setMosaicBrightness } = useLayout();
+  const { recentSearch, setRecentSearch, gridBackdrop, setGridBackdrop, mosaicBrightness, setMosaicBrightness, heroMaxWidth, setHeroMaxWidth } = useLayout();
   const [menuOpen, setMenuOpen] = useState(false);
   const [hidden, setHidden] = useState(false);
   const lastScrollY = useRef(0);
@@ -43,10 +57,15 @@ export default function Navbar() {
   return (
     <>
       <nav className={[
-        "flex h-16 items-center justify-between border-b border-[var(--border-subtle)] bg-[var(--background-primary)] px-4 transition-colors duration-500 md:h-[72px] md:px-[var(--spacing-3xl)]",
+        "border-b border-[var(--border-subtle)] bg-[var(--background-primary)] transition-colors duration-500",
         "md:fixed md:top-0 md:left-0 md:right-0 md:z-30 md:transition-transform md:duration-300 md:ease-[var(--ease-out)]",
         hidden ? "md:-translate-y-full" : "md:translate-y-0",
       ].join(" ")}>
+       {/* Inner row shares the hero's capped, centred width so navbar content lines up with it */}
+       <div
+         className="mx-auto flex h-16 items-center justify-between px-4 md:h-[72px] md:px-6 lg:px-12"
+         style={{ maxWidth: HERO_MAX_WIDTH_PX[heroMaxWidth] }}
+       >
         <div className="flex flex-1 items-center">
           <button
             onClick={() => setMenuOpen(true)}
@@ -90,6 +109,7 @@ export default function Navbar() {
               <MoonIcon className="h-5 w-5 transition-transform duration-500 ease-[var(--ease-out)] group-hover:-rotate-12" />
             )}
           </button>
+        </div>
         </div>
       </nav>
 
@@ -221,6 +241,53 @@ export default function Navbar() {
                 aria-label="Mosaic brightness"
                 className="h-1.5 w-full cursor-pointer rounded-full accent-[var(--content-primary)]"
               />
+            </div>
+          </div>
+
+          {/* Hero width cap */}
+          <div className="flex flex-col gap-2">
+            <p className="font-body text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--content-tertiary)]">
+              Layout
+            </p>
+            <div className="flex flex-col gap-3 rounded-xl border border-[var(--border-light)] px-4 py-3">
+              <div className="flex items-center justify-between">
+                <label
+                  htmlFor="hero-maxwidth"
+                  className="font-body text-[14px] font-medium leading-5 text-[var(--content-primary)]"
+                >
+                  Hero width
+                </label>
+                <span className="font-body text-[12px] font-medium tabular-nums text-[var(--content-tertiary)]">
+                  {HERO_WIDTH_READOUT[heroMaxWidth]}
+                </span>
+              </div>
+              <input
+                id="hero-maxwidth"
+                type="range"
+                min={0}
+                max={HERO_MAX_WIDTH_OPTIONS.length - 1}
+                step={1}
+                value={HERO_MAX_WIDTH_OPTIONS.indexOf(heroMaxWidth)}
+                onChange={(e) =>
+                  setHeroMaxWidth(HERO_MAX_WIDTH_OPTIONS[Number(e.target.value)])
+                }
+                aria-label="Hero maximum width"
+                className="h-1.5 w-full cursor-pointer rounded-full accent-[var(--content-primary)]"
+              />
+              <div className="flex justify-between font-body text-[10px] leading-3">
+                {HERO_MAX_WIDTH_OPTIONS.map((o) => (
+                  <span
+                    key={o}
+                    className={
+                      o === heroMaxWidth
+                        ? "font-semibold text-[var(--content-primary)]"
+                        : "text-[var(--content-tertiary)]"
+                    }
+                  >
+                    {HERO_WIDTH_TICKS[o]}
+                  </span>
+                ))}
+              </div>
             </div>
           </div>
         </div>

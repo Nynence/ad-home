@@ -4,11 +4,25 @@ import { createContext, useContext, useEffect, useState } from "react";
 
 export type RecentSearchStyle = "none" | "sidebyside";
 
+// Ordered hero width caps. "max" = no cap (full-bleed, the old behaviour).
+export type HeroMaxWidth = "1440" | "1920" | "2560" | "max";
+export const HERO_MAX_WIDTH_OPTIONS: HeroMaxWidth[] = ["1440", "1920", "2560", "max"];
+
+// CSS max-width per option. Shared by the hero and the navbar so their content
+// columns share the same width and line up. "max" = no cap (full-bleed).
+export const HERO_MAX_WIDTH_PX: Record<HeroMaxWidth, string> = {
+  "1440": "1440px",
+  "1920": "1920px",
+  "2560": "2560px",
+  max: "none",
+};
+
 const DEFAULT_RECENT_SEARCH: RecentSearchStyle = "none";
 const DEFAULT_GRID_BACKDROP = true;
 // Opacity of the resting black-and-white mosaic layer (0–1). The mouse-trail
 // colour layer is unaffected; this only controls how visible the idle grid is.
 const DEFAULT_MOSAIC_BRIGHTNESS = 0.2;
+const DEFAULT_HERO_MAX_WIDTH: HeroMaxWidth = "1920";
 
 const LayoutContext = createContext<{
   recentSearch: RecentSearchStyle;
@@ -17,6 +31,8 @@ const LayoutContext = createContext<{
   setGridBackdrop: (v: boolean) => void;
   mosaicBrightness: number;
   setMosaicBrightness: (v: number) => void;
+  heroMaxWidth: HeroMaxWidth;
+  setHeroMaxWidth: (v: HeroMaxWidth) => void;
 }>({
   recentSearch: DEFAULT_RECENT_SEARCH,
   setRecentSearch: () => {},
@@ -24,6 +40,8 @@ const LayoutContext = createContext<{
   setGridBackdrop: () => {},
   mosaicBrightness: DEFAULT_MOSAIC_BRIGHTNESS,
   setMosaicBrightness: () => {},
+  heroMaxWidth: DEFAULT_HERO_MAX_WIDTH,
+  setHeroMaxWidth: () => {},
 });
 
 function read<T>(key: string, fallback: T): T {
@@ -49,11 +67,13 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
   const [recentSearch, _setRecentSearch] = useState<RecentSearchStyle>(DEFAULT_RECENT_SEARCH);
   const [gridBackdrop, _setGridBackdrop] = useState<boolean>(DEFAULT_GRID_BACKDROP);
   const [mosaicBrightness, _setMosaicBrightness] = useState<number>(DEFAULT_MOSAIC_BRIGHTNESS);
+  const [heroMaxWidth, _setHeroMaxWidth] = useState<HeroMaxWidth>(DEFAULT_HERO_MAX_WIDTH);
 
   useEffect(() => {
     _setRecentSearch(read("ad-recent-search", DEFAULT_RECENT_SEARCH));
     _setGridBackdrop(read("ad-grid-backdrop", DEFAULT_GRID_BACKDROP));
     _setMosaicBrightness(read("ad-mosaic-brightness", DEFAULT_MOSAIC_BRIGHTNESS));
+    _setHeroMaxWidth(read("ad-hero-maxwidth", DEFAULT_HERO_MAX_WIDTH));
   }, []);
 
   const setRecentSearch = (v: RecentSearchStyle) => {
@@ -72,6 +92,11 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
     write("ad-mosaic-brightness", clamped);
   };
 
+  const setHeroMaxWidth = (v: HeroMaxWidth) => {
+    _setHeroMaxWidth(v);
+    write("ad-hero-maxwidth", v);
+  };
+
   return (
     <LayoutContext.Provider
       value={{
@@ -81,6 +106,8 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
         setGridBackdrop,
         mosaicBrightness,
         setMosaicBrightness,
+        heroMaxWidth,
+        setHeroMaxWidth,
       }}
     >
       {children}

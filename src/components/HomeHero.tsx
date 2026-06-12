@@ -16,7 +16,7 @@ import {
   CaretDownIcon,
 } from "./icons";
 import { STATES, RECENT_SEARCH, type State } from "@/data/states";
-import { useLayout } from "./LayoutProvider";
+import { useLayout, HERO_MAX_WIDTH_PX } from "./LayoutProvider";
 import SearchModal from "./SearchModal";
 
 const AREA_ROTATE_MS = 3000;
@@ -61,6 +61,7 @@ export default function HomeHero() {
 
   const isDesktop = useMediaQuery("(min-width: 1024px)", true);
   const docked = useScrolledPast(120);
+  const { heroMaxWidth } = useLayout();
 
   // Reset area to 0 whenever the active state changes (render-phase adjustment).
   if (prevActiveIndex !== activeIndex) {
@@ -100,7 +101,10 @@ export default function HomeHero() {
       className="relative flex w-full flex-col bg-[var(--background-secondary)]"
       style={{ minHeight: "calc(100dvh - var(--navbar-h, 81px))" }}
     >
-      <div className="flex w-full flex-1 flex-col px-4 py-6 md:px-6 md:py-8 lg:px-12 lg:py-12">
+      <div
+        className="mx-auto flex w-full flex-1 flex-col px-4 py-6 md:px-6 md:py-8 lg:px-12 lg:py-12"
+        style={{ maxWidth: HERO_MAX_WIDTH_PX[heroMaxWidth] }}
+      >
         {/* FIX: left column capped at 524 px on desktop. */}
         <div
           className="flex w-full flex-1 flex-col gap-6 lg:grid lg:gap-x-12 lg:gap-y-6 lg:[grid-template-rows:auto_1fr]"
@@ -715,10 +719,11 @@ function StickySearchBar({
   docked: boolean;
   onOpen: (rect: DOMRect) => void;
 }) {
-  const { recentSearch } = useLayout();
+  const { recentSearch, heroMaxWidth } = useLayout();
   const [anchor, setAnchor] = useState<{ left: number; width: number } | null>(null);
 
   // Measure the left column so the undocked bar aligns with it on desktop.
+  // Re-runs when the hero width cap changes, since that shifts the column.
   useEffect(() => {
     if (!isDesktop) return;
     const measure = () => {
@@ -733,7 +738,7 @@ function StickySearchBar({
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", measure);
     };
-  }, [isDesktop]);
+  }, [isDesktop, heroMaxWidth]);
 
   const isSideBySide = recentSearch === "sidebyside";
   const dockedWidth = isSideBySide ? 820 : 720;
