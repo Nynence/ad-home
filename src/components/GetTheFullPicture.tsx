@@ -25,7 +25,7 @@ const DESTINATIONS: Destination[] = [
   },
   {
     id: "behind-the-build",
-    eyebrow: "News, insights & guides",
+    eyebrow: "Get to know the teams",
     title: "Behind The Build",
     body: "Explore the teams behind a development to understand roles, compare track records, and see associated projects.",
     cta: "Explore Behind The Build",
