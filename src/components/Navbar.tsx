@@ -15,7 +15,7 @@ export default function Navbar() {
   const { theme, toggle } = useTheme();
   const isDark = theme === "dark";
 
-  const { recentSearch, setRecentSearch, gridBackdrop, setGridBackdrop } = useLayout();
+  const { recentSearch, setRecentSearch, gridBackdrop, setGridBackdrop, mosaicBrightness, setMosaicBrightness } = useLayout();
   const [menuOpen, setMenuOpen] = useState(false);
   const [hidden, setHidden] = useState(false);
   const lastScrollY = useRef(0);
@@ -190,6 +190,38 @@ export default function Navbar() {
                 />
               </span>
             </button>
+
+            {/* Mosaic brightness slider */}
+            <div
+              className={[
+                "flex flex-col gap-2 rounded-xl border border-[var(--border-light)] px-4 py-3 transition-opacity duration-200",
+                gridBackdrop ? "opacity-100" : "pointer-events-none opacity-40",
+              ].join(" ")}
+            >
+              <div className="flex items-center justify-between">
+                <label
+                  htmlFor="mosaic-brightness"
+                  className="font-body text-[14px] font-medium leading-5 text-[var(--content-primary)]"
+                >
+                  Mosaic brightness
+                </label>
+                <span className="font-body text-[12px] font-medium tabular-nums text-[var(--content-tertiary)]">
+                  {Math.round(mosaicBrightness * 100)}%
+                </span>
+              </div>
+              <input
+                id="mosaic-brightness"
+                type="range"
+                min={0}
+                max={1}
+                step={0.01}
+                value={mosaicBrightness}
+                disabled={!gridBackdrop}
+                onChange={(e) => setMosaicBrightness(parseFloat(e.target.value))}
+                aria-label="Mosaic brightness"
+                className="h-1.5 w-full cursor-pointer rounded-full accent-[var(--content-primary)]"
+              />
+            </div>
           </div>
         </div>
       </div>

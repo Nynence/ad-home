@@ -6,17 +6,24 @@ export type RecentSearchStyle = "none" | "sidebyside";
 
 const DEFAULT_RECENT_SEARCH: RecentSearchStyle = "none";
 const DEFAULT_GRID_BACKDROP = true;
+// Opacity of the resting black-and-white mosaic layer (0–1). The mouse-trail
+// colour layer is unaffected; this only controls how visible the idle grid is.
+const DEFAULT_MOSAIC_BRIGHTNESS = 0.2;
 
 const LayoutContext = createContext<{
   recentSearch: RecentSearchStyle;
   setRecentSearch: (s: RecentSearchStyle) => void;
   gridBackdrop: boolean;
   setGridBackdrop: (v: boolean) => void;
+  mosaicBrightness: number;
+  setMosaicBrightness: (v: number) => void;
 }>({
   recentSearch: DEFAULT_RECENT_SEARCH,
   setRecentSearch: () => {},
   gridBackdrop: DEFAULT_GRID_BACKDROP,
   setGridBackdrop: () => {},
+  mosaicBrightness: DEFAULT_MOSAIC_BRIGHTNESS,
+  setMosaicBrightness: () => {},
 });
 
 function read<T>(key: string, fallback: T): T {
@@ -41,10 +48,12 @@ function write<T>(key: string, value: T) {
 export function LayoutProvider({ children }: { children: React.ReactNode }) {
   const [recentSearch, _setRecentSearch] = useState<RecentSearchStyle>(DEFAULT_RECENT_SEARCH);
   const [gridBackdrop, _setGridBackdrop] = useState<boolean>(DEFAULT_GRID_BACKDROP);
+  const [mosaicBrightness, _setMosaicBrightness] = useState<number>(DEFAULT_MOSAIC_BRIGHTNESS);
 
   useEffect(() => {
     _setRecentSearch(read("ad-recent-search", DEFAULT_RECENT_SEARCH));
     _setGridBackdrop(read("ad-grid-backdrop", DEFAULT_GRID_BACKDROP));
+    _setMosaicBrightness(read("ad-mosaic-brightness", DEFAULT_MOSAIC_BRIGHTNESS));
   }, []);
 
   const setRecentSearch = (v: RecentSearchStyle) => {
@@ -57,8 +66,23 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
     write("ad-grid-backdrop", v);
   };
 
+  const setMosaicBrightness = (v: number) => {
+    const clamped = Math.min(1, Math.max(0, v));
+    _setMosaicBrightness(clamped);
+    write("ad-mosaic-brightness", clamped);
+  };
+
   return (
-    <LayoutContext.Provider value={{ recentSearch, setRecentSearch, gridBackdrop, setGridBackdrop }}>
+    <LayoutContext.Provider
+      value={{
+        recentSearch,
+        setRecentSearch,
+        gridBackdrop,
+        setGridBackdrop,
+        mosaicBrightness,
+        setMosaicBrightness,
+      }}
+    >
       {children}
     </LayoutContext.Provider>
   );
