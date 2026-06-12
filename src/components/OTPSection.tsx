@@ -76,10 +76,6 @@ export default function OTPSection() {
   const bwInnerRef       = useRef<HTMLDivElement>(null);
   const colorInnerRef    = useRef<HTMLDivElement>(null);
   const isOverBenefitRef = useRef(false);
-  // Freeze the grid loop while the reframe clip-path is mid-flight.
-  const pauseGridRef     = useRef(false);
-  // Mirror of `visible` so the reframe observer can read it without a stale closure.
-  const visibleRef       = useRef(true);
 
   // ── Skip reframe if section is already in view or above on load ──────────
   // Only animate the width reframe when scrolling down from the hero for the
@@ -106,9 +102,6 @@ export default function OTPSection() {
   // ── Fade grid in on page load (not scroll-triggered) ─────────────────────
 
   useEffect(() => { setFadeVisible(true); }, []);
-
-  // Keep visibleRef synced so the reframe observer reads the current value.
-  useEffect(() => { visibleRef.current = visible; }, [visible]);
 
   // ── Decide once whether the live backdrop-blur is affordable ──────────────
   // Two quick, synchronous checks: (1) the reduced-motion preference, and
@@ -141,19 +134,9 @@ export default function OTPSection() {
     const el = sectionRef.current;
     if (!el) return;
 
-    let reframeTimer = 0;
     const reframeObs = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          // The clip-path only animates when arriving from above (section was
-          // hidden). Freeze the mosaic for that window so the grid and the
-          // reframe don't repaint over each other — the heavy scroll-in case.
-          if (!visibleRef.current) {
-            pauseGridRef.current = true;
-            reframeTimer = window.setTimeout(() => {
-              pauseGridRef.current = false;
-            }, REFRAME_MS + 80);
-          }
           setSkipReframe(false); // enable the transition for the forward reframe
           setVisible(true);
           setContentIn(true);    // always play the content entrance on first view
@@ -164,7 +147,7 @@ export default function OTPSection() {
     );
 
     reframeObs.observe(el);
-    return () => { reframeObs.disconnect(); window.clearTimeout(reframeTimer); };
+    return () => { reframeObs.disconnect(); };
   }, []);
 
   // ── Background grid animation ─────────────────────────────────────────────
@@ -285,14 +268,6 @@ export default function OTPSection() {
     let inView  = false;
 
     function tick(ts: number) {
-      // While the reframe clip-path is animating, hold the grid still so the
-      // two effects don't repaint on top of each other (the heavy scroll-in).
-      if (pauseGridRef.current) {
-        last = null;            // reset dt so motion doesn't jump on resume
-        frameId = requestAnimationFrame(tick);
-        return;
-      }
-
       if (!last) last = ts;
       const dt = Math.min((ts - last) / 16.67, 3);
       last = ts;
