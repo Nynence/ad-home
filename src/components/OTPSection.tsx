@@ -45,8 +45,13 @@ const REFRAME_MS = 1000;
 // card matches the old contained box exactly at every breakpoint:
 //   • ≤1440px viewports → floors at the responsive --otp-pad (16/32/48px)
 //   • >1440px viewports → grows so the card caps at 1344px wide, centred
+// Corners stay rounded (16px) at both ends, so only the width animates.
 const CLIP_FINAL = "inset(0 max(var(--otp-pad), (100vw - 1344px) / 2) round 16px)";
-const CLIP_START = "inset(0 0 round 0)";
+// Start the reframe at full width up to 1920px, then cap at 1920px on wider
+// viewports (≤1920 → full-bleed; >1920 → 1920 centred). Rounded at both ends, so
+// only the width animates inward. At full-bleed the side edges sit flush to the
+// screen by definition; the 16px radius still rounds the top/bottom corners.
+const CLIP_START = "inset(0 max(0px, (100vw - 1920px) / 2) round 16px)";
 
 const GRID_SRCS = Array.from({ length: 48 }, (_, i) =>
   `/grid/loop-${String(i + 1).padStart(2, "0")}.webp`
